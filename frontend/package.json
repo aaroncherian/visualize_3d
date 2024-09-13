@@ -11,6 +11,8 @@
   "dependencies": {
     "@tresjs/core": "^4.2.7",
     "axios": "^1.7.2",
+    "primeflex": "^3",
+    "primevue": "^3",
     "vue": "^3.4.29"
   },
   "devDependencies": {

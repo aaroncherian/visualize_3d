@@ -1,15 +1,14 @@
-import './assets/main.css'
+import './assets/main.css';
 import PrimeVue from 'primevue/config';
-import Aura from '@primevue/themes/aura';
+import 'primevue/resources/primevue.min.css';       // PrimeVue core styles
+import 'primeflex/primeflex.css';                   // PrimeFlex for layout
 
-import { createApp } from 'vue'
-import App from './App.vue'
+import { createApp } from 'vue';
+import App from './App.vue';
 
-const app = createApp(App)
-app.use(PrimeVue, {
-    theme: {
-        preset: Aura
-    }
-})
+const app = createApp(App);
+
+// Use PrimeVue without specifying a theme preset
+app.use(PrimeVue);
 
 app.mount('#app');
