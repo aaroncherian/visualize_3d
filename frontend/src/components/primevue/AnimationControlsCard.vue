@@ -23,7 +23,8 @@ import FrameEntry from '../animation_control_panel/FrameEntry.vue';
   border-radius: 15px;
   background-color: #ffffff;
   justify-content: center; /* Center content vertically */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1)
+}
 
 .animation-control-panel {
   display: flex;
