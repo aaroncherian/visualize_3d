@@ -12,7 +12,7 @@
 <script setup>
 import PrimeVueThreeJS from './components/primevue/ThreeJSCard.vue';
 import Slider from './components/animation_control_panel/Slider.vue'
-import AnimationControlPanel from "@/components/AnimationControlPanel.vue";
+import AnimationControlPanel from './components/primevue/AnimationControlsCard.vue';
 </script>
 
 <style>

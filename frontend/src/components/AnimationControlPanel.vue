@@ -20,7 +20,7 @@ import FrameEntry from '@/components/animation_control_panel/FrameEntry.vue';  /
   align-items: center; /* Vertically align components */
   gap: 1rem; /* Adds spacing between components */
   padding: 1rem; /* Padding for breathing space */
-  border: 1px solid #fbf5f1; /* Optional border for styling */
+  border: 1px solid #ccc; /* Optional border for styling */
   border-radius: 4px;
   background-color: #fffefe;
 }

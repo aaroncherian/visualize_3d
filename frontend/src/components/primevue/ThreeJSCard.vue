@@ -25,6 +25,8 @@ const height = '100%';
   background-color: #ffffff;
   margin-top: 40px;
   justify-content: center; /* Center content vertically */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
 
 }
 
