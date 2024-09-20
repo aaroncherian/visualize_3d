@@ -5,7 +5,7 @@
         ref="frameSlider"
         v-model="currentFrameNumber"
         :min="0"
-        :max="100"
+        :max="numFrames"
         class="w-full"
     />
   </div>
@@ -19,6 +19,7 @@ import { storeToRefs } from 'pinia';
 
 const animationStore = useAnimationStore();
 const { currentFrameNumber } = storeToRefs(animationStore);
+const { numFrames } =  storeToRefs(animationStore);
 
 </script>
 

@@ -7,10 +7,13 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import api from '../services/api';
+import { useAnimationStore } from "@/stores/animationStore.js";
 
+const animationStore = useAnimationStore();
 const container = ref(null);
 const currentFrameNumber = ref(null);
 let skeletonData = ref([]);
+let numFrames = ref(null);
 
 const props = defineProps({
   width: {
@@ -25,12 +28,17 @@ const props = defineProps({
 
 
 onMounted(() => {
+
+
+
   const fetchData = async () => {
     try {
       const response = await api.getData();
       skeletonData.value = response.data;
       console.log('Skeleton data fetched: ', skeletonData.value);
       currentFrameNumber.value = 0;
+      numFrames = skeletonData.value.num_frames;
+      animationStore.setNumFrames(numFrames);
     } catch (error) {
       console.error('Error fetching skeleton data', error);
     }
