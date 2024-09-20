@@ -8,8 +8,6 @@
         :max="100"
         class="w-full"
     />
-    <label for="frame-slider">Frame:</label>
-    <span class="slider-value">{{ currentFrameNumber }}</span>
   </div>
 </template>
 
@@ -20,29 +18,19 @@ import { storeToRefs } from 'pinia';
 
 
 const animationStore = useAnimationStore();
-
 const { currentFrameNumber } = storeToRefs(animationStore);
 
 </script>
 
 <style scoped>
 .slider-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
+  flex: 1;
   padding: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+
 }
 
 :deep(.p-slider-handle) {
   transform: translateY(-50%);
 }
 
-.slider-value {
-  text-align: center;
-  font-weight: bold;
-  color: black;
-}
 </style>

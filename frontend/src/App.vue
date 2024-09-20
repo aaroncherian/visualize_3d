@@ -4,7 +4,7 @@
       <PrimeVueThreeJS />
     </div>
     <div class = 'slider-item'>
-      <Slider />
+      <AnimationControlPanel />
     </div>
   </div>
 </template>
@@ -12,6 +12,7 @@
 <script setup>
 import PrimeVueThreeJS from './components/primevue/ThreeJSCard.vue';
 import Slider from './components/animation_control_panel/Slider.vue'
+import AnimationControlPanel from "@/components/AnimationControlPanel.vue";
 </script>
 
 <style>
