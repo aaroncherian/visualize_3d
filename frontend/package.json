@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@primevue/themes": "^4.0.7",
     "@tresjs/core": "^4.2.7",
     "axios": "^1.7.2",
     "primeflex": "^3",
