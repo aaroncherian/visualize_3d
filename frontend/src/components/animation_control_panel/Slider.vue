@@ -15,8 +15,14 @@
 
 <script setup>
 import Slider from 'primevue/slider';
-import { ref } from 'vue';
-const currentFrameNumber = ref(0);
+import { useAnimationStore } from '@/stores/animationStore';
+import { storeToRefs } from 'pinia';
+
+
+const animationStore = useAnimationStore();
+
+const { currentFrameNumber } = storeToRefs(animationStore);
+
 </script>
 
 <style scoped>
