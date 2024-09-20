@@ -10,9 +10,9 @@
 </template>
 
 <script setup>
-import PrimeVueThreeJS from './components/primevue/ThreeJSCard.vue';
+import PrimeVueThreeJS from '@/components/cards/ThreeJSCard.vue';
 import Slider from './components/animation_control_panel/Slider.vue'
-import AnimationControlPanel from './components/primevue/AnimationControlsCard.vue';
+import AnimationControlPanel from '@/components/cards/AnimationControlsCard.vue';
 </script>
 
 <style>
