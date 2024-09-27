@@ -3,6 +3,7 @@
     <div class="controls mt-3" style="flex-grow: 1;">
       <Slider />
       <FrameEntry />
+      <PlaybackControls />
     </div>
   </div>
 </template>
@@ -10,6 +11,7 @@
 <script setup>
 import Slider from '../animation_control_panel/Slider.vue';
 import FrameEntry from '../animation_control_panel/FrameEntry.vue';
+import PlaybackControls from "../animation_control_panel/PlaybackControls.vue";
 
 </script>
 
