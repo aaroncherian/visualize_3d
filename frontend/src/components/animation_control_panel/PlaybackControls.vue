@@ -43,7 +43,7 @@ onUnmounted(() => {
 <template>
 <div class = "playback-controls">
   <button @click="togglePlay"> {{ isPlaying ? "Pause" : "Play"}} </button>
-  <label for="fps-input"> FPS: </label>
+  <label for="fps-input" class="fps-label"> FPS: </label>
   <input id="fps-input" type="number" v-model="fps" min="1" max="300" />
 </div>
 
@@ -53,5 +53,10 @@ onUnmounted(() => {
 .playback-controls{
   display:flex;
   align-items:center;
+  gap: .25rem;
+}
+
+.fps-label{
+  color:black;
 }
 </style>
