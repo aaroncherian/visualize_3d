@@ -1,7 +1,7 @@
 <script setup>
 import { storeToRefs } from "pinia";
 import { useAnimationStore } from "@/stores/animationStore.js";
-import { onUnmounted } from "vue";
+import { watch, onUnmounted } from "vue";
 
 const animationStore = useAnimationStore();
 const {currentFrameNumber, numFrames, isPlaying, fps} = storeToRefs(animationStore);
@@ -31,6 +31,13 @@ const playAnimation = () => {
     }
       }, interval);
 };
+
+watch(fps, (newFps,oldFps) => {
+  if (isPlaying.value) {
+    clearInterval(playInterval);
+    playAnimation();
+  }
+    });
 
 onUnmounted(() => {
   if (playInterval) {

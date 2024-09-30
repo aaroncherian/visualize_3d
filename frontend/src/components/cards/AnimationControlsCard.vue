@@ -1,9 +1,10 @@
 <template>
   <div class="card animation-control-panel">
     <div class="controls mt-3" style="flex-grow: 1;">
-      <Slider />
       <FrameEntry />
+      <Slider />
       <PlaybackControls />
+      <DownloadButton />
     </div>
   </div>
 </template>
@@ -12,6 +13,7 @@
 import Slider from '../animation_control_panel/Slider.vue';
 import FrameEntry from '../animation_control_panel/FrameEntry.vue';
 import PlaybackControls from "../animation_control_panel/PlaybackControls.vue";
+import DownloadButton from '../animation_control_panel/DownloadButton.vue';
 
 </script>
 

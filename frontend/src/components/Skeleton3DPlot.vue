@@ -8,10 +8,14 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import api from '../services/api';
 import { useAnimationStore } from "@/stores/animationStore.js";
+import { useRendererStore } from '@/stores/rendererStore.js';
 import {storeToRefs} from "pinia";
 
 const animationStore = useAnimationStore();
 const { numFrames, currentFrameNumber } = storeToRefs(animationStore);
+
+const rendererStore = useRendererStore();
+
 const container = ref(null);
 let skeletonData = ref([]);
 
@@ -99,11 +103,10 @@ onMounted(() => {
   scene.background = new THREE.Color(0xffffff);
 
   const renderer = new THREE.WebGLRenderer();
-
-
   renderer.setSize(container.value.clientWidth, container.value.clientHeight);
   renderer.setPixelRatio(window.devicePixelRatio); // Set the pixel ratio for better clarity
   container.value.appendChild(renderer.domElement);
+  rendererStore.setRenderer(renderer)
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 250, 500);
