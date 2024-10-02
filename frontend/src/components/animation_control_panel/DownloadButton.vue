@@ -13,9 +13,7 @@ const rendererStore = useRendererStore();
 const {renderer, scene, camera} = storeToRefs(rendererStore);
 
 // Initialize variables
-let capturer = null;
 const isCapturing = ref(false);
-let captureInterval = null;
 
 let frames = [];
 
@@ -58,8 +56,6 @@ const captureFrame = (frameNumber) => {
       }
   )
 }
-
-
 </script>
 
 <template>
