@@ -106,12 +106,19 @@ onMounted(() => {
   renderer.setSize(container.value.clientWidth, container.value.clientHeight);
   renderer.setPixelRatio(window.devicePixelRatio); // Set the pixel ratio for better clarity
   container.value.appendChild(renderer.domElement);
-  rendererStore.setRenderer(renderer)
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 250, 500);
   camera.lookAt(0, 0, 0);
   camera.up.set(0, 0, 1);
+
+  rendererStore.setScene(scene);
+  rendererStore.setCamera(camera);
+  rendererStore.setRenderer(renderer);
+
+  console.log('Scene initialized:', rendererStore.scene);
+  console.log('Camera initialized:', rendererStore.camera);
+  console.log('Renderer initialized:', rendererStore.renderer);
 
   const controls = new OrbitControls(camera, renderer.domElement);
 

@@ -9,7 +9,6 @@ const {currentFrameNumber, numFrames, isPlaying, fps} = storeToRefs(animationSto
 let playInterval = null;
 
 const togglePlay = () => {
-  console.log('isPlaying:', isPlaying.value);
   if (isPlaying.value) {
     animationStore.setIsPlaying(false);
     clearInterval(playInterval);
@@ -18,6 +17,7 @@ const togglePlay = () => {
     animationStore.setIsPlaying(true);
     playAnimation();
   }
+  console.log('isPlaying:', isPlaying.value);
 };
 
 const playAnimation = () => {
