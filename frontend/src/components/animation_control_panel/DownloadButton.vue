@@ -12,7 +12,6 @@ const { renderer, scene, camera } = storeToRefs(rendererStore);
 
 const isCapturing = ref(false);
 const captureProgress = ref(0);
-const uploadProgress = ref(0);
 
 let frames = [];
 
@@ -49,7 +48,7 @@ const captureFrame = (frameNumber) => {
       console.log(`Captured frame: ${frameNumber}`);
       resolve();
     }, 'image/png');
-  });
+  }); 
 }
 
 const uploadFramesInBatches = async (frames) => {
@@ -57,7 +56,6 @@ const uploadFramesInBatches = async (frames) => {
   for (let i = 0; i < totalBatches; i++) {
     const batchFrames = frames.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
     await uploadBatch(batchFrames, i);
-    uploadProgress.value = ((i + 1) / totalBatches) * 100;
   }
 }
 
@@ -97,13 +95,5 @@ const uploadBatch = async (batchFrames, batchIndex) => {
     <button @click="startCapture" :disabled="isCapturing">
       {{ isCapturing ? 'Capturing...' : 'Download' }}
     </button>
-    <div v-if="isCapturing">
-      <progress :value="captureProgress" max="100"></progress>
-      <span>Capture Progress: {{ Math.round(captureProgress) }}%</span>
-    </div>
-    <div v-if="uploadProgress > 0">
-      <progress :value="uploadProgress" max="100"></progress>
-      <span>Upload Progress: {{ Math.round(uploadProgress) }}%</span>
-    </div>
   </div>
 </template>

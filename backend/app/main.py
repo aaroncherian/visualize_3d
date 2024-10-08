@@ -21,9 +21,9 @@ from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-# recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
-recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
-# recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_sample_data')
+recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
+# recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
+recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_sample_data')
 output_data_folder_path = recording_folder_path / 'output_data'
 tracker_type = 'mediapipe'
 data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
@@ -79,7 +79,7 @@ async def upload_frames(request: Request, background_tasks: BackgroundTasks):
         logger.info(f"Received batch {batch_index} with {len(files)} files. Total frames: {total_frames}")
 
         for i, file in enumerate(files):
-            frame_number = batch_index * 500 + i  # Assuming 500 frames per batch
+            frame_number = batch_index * 500 + i  
             contents = await file.read()
             nparr = np.frombuffer(contents, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -143,7 +143,7 @@ def create_video_from_frames(output_filename, total_frames, width, height):
         start_time = time.time()
         logger.info(f"Starting video creation with {total_frames} frames")
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(str(output_filename), fourcc, 25.0, (width, height))
+        out = cv2.VideoWriter(str(output_filename), fourcc, 30.0, (width, height))
 
         for i in tqdm(range(total_frames), desc="Creating video"):
             frame = frames.get(i)
