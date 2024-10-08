@@ -1,22 +1,18 @@
-import json
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, HTTPException, Request
+from fastapi import FastAPI, WebSocket, HTTPException, Request, BackgroundTasks, Form, File
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-import traceback
 from starlette.middleware.cors import CORSMiddleware
 import numpy as np
-import pandas as pd
 from pathlib import Path
 import logging
-import base64
+import cv2
 
-import subprocess
-import shlex
-
-
+import logging
+from tqdm import tqdm
 from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model
 from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
+
+import time
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -30,6 +26,8 @@ data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
 
 video_name = recording_folder_path/'test_video.mp4'
 
+annotated_video_path = recording_folder_path/'annotated_videos'/'sesh_2022-09-19_16_16_50_in_class_jsm_synced_Cam1_annotated.mp4'
+cap = cv2.VideoCapture(str(annotated_video_path))
 # Global variable to store frames
 frames = {}
 
@@ -51,12 +49,6 @@ app.add_middleware(
 )
 
 # app.mount("/static", StaticFiles(directory="skeleton-visualization/fast_api"), name="static")
-from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
-from fastapi.responses import JSONResponse
-import cv2
-import numpy as np
-from tqdm import tqdm
-import time
 
 
 @app.post("/upload-frames")
@@ -131,11 +123,6 @@ async def websocket_endpoint(websocket: WebSocket):
     while True:
         data = await websocket.receive_text()
         await websocket.send_text(f"Message text was: {data}")
-
-
-import subprocess
-import logging
-from tqdm import tqdm
 
 def create_video_from_frames(output_filename, total_frames, width, height):
     global frames
