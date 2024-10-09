@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, HTTPException, Request, BackgroundTasks, Form, File
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, Response
 from starlette.middleware.cors import CORSMiddleware
 import numpy as np
 from pathlib import Path
@@ -18,7 +18,7 @@ import time
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
+# recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
 # recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
 recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_sample_data')
 output_data_folder_path = recording_folder_path / 'output_data'
@@ -30,13 +30,38 @@ video_name = recording_folder_path/'test_video.mp4'
 annotated_video_path = recording_folder_path/'annotated_videos'/'sesh_2022-09-19_16_16_50_in_class_jsm_synced_Cam1_annotated.mp4'
 
 # Global variable to store frames
-frames = {}
 
+
+
+def capture_all_frames_from_video(path_to_video:Path):
+    global preprocessed_frames
+    preprocessed_frames = []
+    cap = cv2.VideoCapture(str(path_to_video))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    for frame_number in tqdm(range(total_frames), desc="Capturing frames"):
+        ret, frame = cap.read()
+        if not ret:
+            logger.warning(f"Error reading frame {frame_number}")
+            continue
+
+        new_height,new_width = int(frame.shape[0]/4), int(frame.shape[1]/4)
+        frame = cv2.resize(frame, (new_width, new_height))
+
+        ret, buffer = cv2.imencode('.webp', frame, [int(cv2.IMWRITE_WEBP_QUALITY), 70])
+        if not ret:
+            raise HTTPException(status_code=500, detail=f"Error encoding frame {frame_number}")
+
+        preprocessed_frames.append(buffer.tobytes())
+    cap.release()
+    logger.info(f"Captured {len(preprocessed_frames)} frames")
+    return preprocessed_frames
 
 
 @asynccontextmanager
 async def lifespan_manager(app:FastAPI):
     logger.info("Starting up FastAPI app - access API backend interface at http://localhost:8000/docs")
+    capture_all_frames_from_video(annotated_video_path)
     yield
     logger.info("Shutting down FastAPI app")
 
@@ -52,16 +77,7 @@ app.add_middleware(
 )
 
 # app.mount("/static", StaticFiles(directory="skeleton-visualization/fast_api"), name="static")
-from threading import Lock
 
-# Global video capture object and lock
-cap = cv2.VideoCapture(str(annotated_video_path))
-cap_lock = Lock()
-
-@app.on_event("shutdown")
-def shutdown_event():
-    cap.release()
-    logging.info("VideoCapture released on shutdown")
 
 
 @app.post("/upload-frames")
@@ -129,6 +145,13 @@ async def get_data():
         logger.error(f"Error serving data: {e}")
         raise HTTPException(status_code=500, detail=f"Error serving data: {e}")
 
+@app.get("/video/frame/{frame_index}")
+async def get_video_frame(frame_index:int):
+    if frame_index < 0 or frame_index >= len(preprocessed_frames):
+        raise HTTPException(status_code=404, detail="Frame not found")
+    return StreamingResponse(BytesIO(preprocessed_frames[frame_index]), media_type="image/webp")
+
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -166,33 +189,33 @@ def create_video_from_frames(output_filename, total_frames, width, height):
         # Ensure frames are cleared even if an error occurred
         frames.clear()
 
-@app.get("/video/frame/{frame_index}")
-async def get_frame(frame_index: int):
-    with cap_lock:
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        logging.info(f"Total frames: {total_frames}")
+# @app.get("/video/frame/{frame_index}")
+# async def get_frame(frame_index: int):
+#     with cap_lock:
+#         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+#         logging.info(f"Total frames: {total_frames}")
 
-        if frame_index < 0 or frame_index >= total_frames:
-            raise HTTPException(status_code=404, detail="Frame not found")
+#         if frame_index < 0 or frame_index >= total_frames:
+#             raise HTTPException(status_code=404, detail="Frame not found")
 
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
-        logging.info(f"Reading frame {frame_index}")
-        ret, frame = cap.read()
+#         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+#         logging.info(f"Reading frame {frame_index}")
+#         ret, frame = cap.read()
 
-    if not ret:
-        raise HTTPException(status_code=500, detail="Error reading frame")
+#     if not ret:
+#         raise HTTPException(status_code=500, detail="Error reading frame")
 
-    # Resize the frame to a lower resolution
-    new_height,new_width = int(frame.shape[0]/4), int(frame.shape[1]/4)
-    frame = cv2.resize(frame, (new_width, new_height))
+#     # Resize the frame to a lower resolution
+#     new_height,new_width = int(frame.shape[0]/4), int(frame.shape[1]/4)
+#     frame = cv2.resize(frame, (new_width, new_height))
 
-    # Adjust JPEG quality to reduce size
-    ret, buffer = cv2.imencode('.webp', frame, [int(cv2.IMWRITE_WEBP_QUALITY), 70])
-    if not ret:
-        raise HTTPException(status_code=500, detail="Error encoding frame")
+#     # Adjust JPEG quality to reduce size
+#     ret, buffer = cv2.imencode('.webp', frame, [int(cv2.IMWRITE_WEBP_QUALITY), 70])
+#     if not ret:
+#         raise HTTPException(status_code=500, detail="Error encoding frame")
 
-    io_buf = BytesIO(buffer.tobytes())
-    return StreamingResponse(io_buf, media_type="image/webp")
+#     io_buf = BytesIO(buffer.tobytes())
+#     return StreamingResponse(io_buf, media_type="image/webp")
 
 
 
