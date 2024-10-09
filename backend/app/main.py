@@ -1,11 +1,12 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, HTTPException, Request, BackgroundTasks, Form, File
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 import numpy as np
 from pathlib import Path
 import logging
 import cv2
+from io import BytesIO
 
 import logging
 from tqdm import tqdm
@@ -27,9 +28,11 @@ data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
 video_name = recording_folder_path/'test_video.mp4'
 
 annotated_video_path = recording_folder_path/'annotated_videos'/'sesh_2022-09-19_16_16_50_in_class_jsm_synced_Cam1_annotated.mp4'
-cap = cv2.VideoCapture(str(annotated_video_path))
+
 # Global variable to store frames
 frames = {}
+
+
 
 @asynccontextmanager
 async def lifespan_manager(app:FastAPI):
@@ -49,6 +52,16 @@ app.add_middleware(
 )
 
 # app.mount("/static", StaticFiles(directory="skeleton-visualization/fast_api"), name="static")
+from threading import Lock
+
+# Global video capture object and lock
+cap = cv2.VideoCapture(str(annotated_video_path))
+cap_lock = Lock()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    cap.release()
+    logging.info("VideoCapture released on shutdown")
 
 
 @app.post("/upload-frames")
@@ -152,6 +165,36 @@ def create_video_from_frames(output_filename, total_frames, width, height):
     finally:
         # Ensure frames are cleared even if an error occurred
         frames.clear()
+
+@app.get("/video/frame/{frame_index}")
+async def get_frame(frame_index: int):
+    with cap_lock:
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        logging.info(f"Total frames: {total_frames}")
+
+        if frame_index < 0 or frame_index >= total_frames:
+            raise HTTPException(status_code=404, detail="Frame not found")
+
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+        logging.info(f"Reading frame {frame_index}")
+        ret, frame = cap.read()
+
+    if not ret:
+        raise HTTPException(status_code=500, detail="Error reading frame")
+
+    # Resize the frame to a lower resolution
+    new_height,new_width = int(frame.shape[0]/4), int(frame.shape[1]/4)
+    frame = cv2.resize(frame, (new_width, new_height))
+
+    # Adjust JPEG quality to reduce size
+    ret, buffer = cv2.imencode('.webp', frame, [int(cv2.IMWRITE_WEBP_QUALITY), 70])
+    if not ret:
+        raise HTTPException(status_code=500, detail="Error encoding frame")
+
+    io_buf = BytesIO(buffer.tobytes())
+    return StreamingResponse(io_buf, media_type="image/webp")
+
+
 
 if __name__ == "__main__":
     import uvicorn

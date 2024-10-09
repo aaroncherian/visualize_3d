@@ -6,6 +6,9 @@
     <div class = 'slider-item'>
       <AnimationControlPanel />
     </div>
+    <div class = 'video-panel'>
+      <VideoPlayer />
+    </div>
   </div>
 </template>
 
@@ -13,6 +16,7 @@
 import PrimeVueThreeJS from '@/components/cards/ThreeJSCard.vue';
 import Slider from './components/animation_control_panel/Slider.vue'
 import AnimationControlPanel from '@/components/cards/AnimationControlsCard.vue';
+import VideoPlayer from "@/components/VideoPlayer.vue";
 </script>
 
 <style>
