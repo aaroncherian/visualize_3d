@@ -15,7 +15,7 @@ from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
 
 import time
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
@@ -104,13 +104,16 @@ async def upload_frames(request: Request, background_tasks: BackgroundTasks):
             nparr = np.frombuffer(contents, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             frames[frame_number] = img
-
+        
+        frames_list = list(frames.values())
         logger.info(f"Processed batch {batch_index} in {time.time() - start_time:.2f} seconds")
         logger.info(f"Received {len(frames)} frames out of {total_frames} expected.")
 
         if len(frames) >= total_frames:
             logger.info("All frames received. Starting video creation.")
-            background_tasks.add_task(create_video_from_frames, video_name, total_frames, width, height)
+            background_tasks.add_task(create_composite_video, video_name, frames_list, preprocessed_frames, width, height)
+            # background_tasks.add_task(create_combined_video, video_name, frames_list, preprocessed_frames, width, height)
+            # background_tasks.add_task(create_video_from_frames, video_name, total_frames, width, height)
             return JSONResponse(status_code=202, content={'status': 'processing', 'message': 'Video creation started'})
         else:
             return JSONResponse(status_code=200, content={'status': 'success', 'message': f'Batch {batch_index} received'})
@@ -119,6 +122,70 @@ async def upload_frames(request: Request, background_tasks: BackgroundTasks):
         logger.error(f"Error in upload_frames: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+def create_combined_video(video_name, threejs_frames, video_frames, width, height):
+    try:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(str(video_name), fourcc, 30.0, (width * 2, height))
+
+        num_frames = min(len(threejs_frames), len(video_frames))
+        for i in tqdm(range(num_frames)):
+            threejs_frame = threejs_frames[i]
+            video_frame = video_frames[i]
+            
+            video_img = cv2.imdecode(np.frombuffer(video_frame, np.uint8), cv2.IMREAD_COLOR)
+            video_img = cv2.resize(video_img, (width, height))
+            threejs_frame = cv2.resize(threejs_frame, (width, height))
+            
+            combined_frame = np.hstack((video_img, threejs_frame))
+            out.write(combined_frame)
+
+        out.release()
+        logger.info(f"Combined video saved as {video_name}")
+
+    except Exception as e:
+        logger.error(f"Error in create_combined_video: {str(e)}")
+
+def create_composite_video(video_name, threejs_frames, video_frames, width, height):
+    try:
+        # Get the size of the threejs frames (height, width, channels)
+        first_threejs_frame = threejs_frames[0]
+        frame_height, frame_width = first_threejs_frame.shape[:2]
+
+        # Initialize VideoWriter with the correct frame size (width, height)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(str(video_name), fourcc, 30.0, (frame_width, frame_height))
+
+        # Get the size of the first video frame to determine aspect ratio
+        first_video_frame = cv2.imdecode(np.frombuffer(video_frames[0], np.uint8), cv2.IMREAD_COLOR)
+        video_height, video_width = first_video_frame.shape[:2]
+        video_aspect_ratio = video_width / video_height
+
+        # Calculate the size of the overlay video
+        overlay_height = int(frame_height / 4)
+        overlay_width = int(overlay_height * video_aspect_ratio)
+
+        # Process frames
+        num_frames = min(len(threejs_frames), len(video_frames))
+        for i in tqdm(range(num_frames)):
+            # Resize and copy the threejs frame
+            threejs_frame = cv2.resize(threejs_frames[i], (frame_width, frame_height))
+            composite_frame = threejs_frame.copy()
+
+            # Decode and resize the video frame
+            video_frame = cv2.imdecode(np.frombuffer(video_frames[i], np.uint8), cv2.IMREAD_COLOR)
+            video_frame_resized = cv2.resize(video_frame, (overlay_width, overlay_height))
+
+            # Overlay the video frame onto the threejs frame
+            composite_frame[0:overlay_height, 0:overlay_width] = video_frame_resized
+
+            # Write the composite frame to the video
+            out.write(composite_frame)
+
+        out.release()
+        logger.info(f"Composite video saved as {video_name}")
+
+    except Exception as e:
+        logger.error(f"Error in create_composite_video: {str(e)}")
 
 
 
