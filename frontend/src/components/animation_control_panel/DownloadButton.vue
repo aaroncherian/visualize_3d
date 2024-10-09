@@ -70,7 +70,7 @@ const uploadBatch = async (batchFrames, batchIndex) => {
     formData.append('batchIndex', batchIndex);
     formData.append('totalFrames', frames.length);
 
-    const response = await fetch('http://127.0.0.1:8000/upload-frames', {
+    const response = await fetch('/api/upload-frames', {
       method: 'POST',
       body: formData,
     });
