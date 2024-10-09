@@ -1,22 +1,21 @@
 <template>
   <div id="app" class="grid-container">
-    <div class="grid-item">
+    <div class="grid-item threejs-item">
       <PrimeVueThreeJS />
     </div>
-    <div class = 'slider-item'>
+    <div class="grid-item slider-item">
       <AnimationControlPanel />
     </div>
-    <div class = 'video-panel'>
-      <VideoPlayer />
+    <div class="grid-item video-item">
+      <VideoPlayerCard />
     </div>
   </div>
 </template>
 
 <script setup>
 import PrimeVueThreeJS from '@/components/cards/ThreeJSCard.vue';
-import Slider from './components/animation_control_panel/Slider.vue'
 import AnimationControlPanel from '@/components/cards/AnimationControlsCard.vue';
-import VideoPlayer from "@/components/VideoPlayer.vue";
+import VideoPlayerCard from '@/components/cards/VideoPlayerCard.vue';
 </script>
 
 <style>
@@ -26,35 +25,42 @@ body {
   font-family: var(--font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
 }
 
 html, body, #app {
-  margin: 0;
-  padding: 0;
   height: 100%;
   width: 100%;
 }
 
-/* CSS Grid Layout */
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(10, 1fr); /* Creates 10 equal-width columns */
-  grid-template-rows: repeat(5, 1fr); /* Creates 5 equal-height rows */
-  gap: 10px; /* Optional: Adds spacing between grid items */
-  height: 100vh; /* Makes the grid container fill the viewport height */
-  padding: 20px; /* Optional: Padding around the grid */
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(12, 1fr);
+  gap: 10px;
+  height: 100vh;
+  padding: 20px;
 }
 
 .grid-item {
-  grid-column: 3 / span 6; /* Start at column 3 and span 6 columns */
-  grid-row: span 3; /* Span 4 out of 5 rows */
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.slider-item{
-  grid-column: 3 / span 6;
-  margin: 30px;
+.threejs-item {
+  grid-column: 2 / span 6;
+  grid-row: 2 / span 6;
+}
+
+.slider-item {
+  grid-column: 2 / span 6;
+  grid-row: 9 / span 2;
+}
+
+.video-item {
+  grid-column: 9 / span 3;
+  grid-row: 2 / span 10;
 }
 </style>
