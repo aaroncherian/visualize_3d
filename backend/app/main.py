@@ -30,8 +30,7 @@ video_name = recording_folder_path/'test_video.mp4'
 annotated_video_path = recording_folder_path/'annotated_videos'/'sesh_2022-09-19_16_16_50_in_class_jsm_synced_Cam1_annotated.mp4'
 
 # Global variable to store frames
-
-
+frames = {}
 
 def capture_all_frames_from_video(path_to_video:Path):
     global preprocessed_frames
