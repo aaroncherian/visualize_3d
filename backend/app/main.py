@@ -7,33 +7,71 @@ from pathlib import Path
 import logging
 import cv2
 from io import BytesIO
+from fastapi.encoders import jsonable_encoder
+import base64
+
 
 import logging
 from tqdm import tqdm
 from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model
 from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
 
+from multiprocessing import Pool
 import time
+import pickle
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
-# recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
-recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_sample_data')
+recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
+# recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\sesh_2022-09-19_16_16_50_in_class_jsm')
 output_data_folder_path = recording_folder_path / 'output_data'
 tracker_type = 'mediapipe'
 data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
 
 video_name = recording_folder_path/'test_video.mp4'
+annotated_video_folder_path = recording_folder_path/'annotated_videos'
 
-annotated_video_path = recording_folder_path/'annotated_videos'/'sesh_2022-09-19_16_16_50_in_class_jsm_synced_Cam1_annotated.mp4'
+list_of_annotated_videos = list(annotated_video_folder_path.glob('*.mp4'))
 
 # Global variable to store frames
 frames = {}
+results_dict = None
+
+@asynccontextmanager
+async def lifespan_manager(app:FastAPI):
+    logger.info("Starting up FastAPI app - access API backend interface at http://localhost:8000/docs")
+    global results_dict
+    results_dict = preproccess_annotated_videos(list_of_annotated_videos)
+    yield
+    logger.info("Shutting down FastAPI app")
+
+app = FastAPI(lifespan=lifespan_manager)
+
+origins = ["http://localhost:5173"]  
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# app.mount("/static", StaticFiles(directory="skeleton-visualization/fast_api"), name="static")
+
+def preproccess_annotated_videos(list_of_video_paths:list[Path]):
+    with Pool(processes=10) as pool:
+        results = pool.map(capture_all_frames_from_video, list_of_video_paths)
+    
+    global results_dict    
+    results_dict = {video_number: frames for video_number, frames in enumerate(results)}
+
+    return results_dict
+
+    f = 2
 
 def capture_all_frames_from_video(path_to_video:Path):
-    global preprocessed_frames
     preprocessed_frames = []
     cap = cv2.VideoCapture(str(path_to_video))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -56,28 +94,35 @@ def capture_all_frames_from_video(path_to_video:Path):
     logger.info(f"Captured {len(preprocessed_frames)} frames")
     return preprocessed_frames
 
-
-@asynccontextmanager
-async def lifespan_manager(app:FastAPI):
-    logger.info("Starting up FastAPI app - access API backend interface at http://localhost:8000/docs")
-    capture_all_frames_from_video(annotated_video_path)
-    yield
-    logger.info("Shutting down FastAPI app")
-
-app = FastAPI(lifespan=lifespan_manager)
-
-origins = ["http://localhost:5173"]  
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# app.mount("/static", StaticFiles(directory="skeleton-visualization/fast_api"), name="static")
+@app.get("/video-info")
+async def get_video_info():
+    return {
+        "videos": [
+            {
+                "name": video_path.name,
+                "frame_count": len(frames)
+            }
+            for video_path, frames in zip(list_of_annotated_videos, results_dict.values())
+        ],
+        "total_videos": len(results_dict)
+    }
 
 
+
+@app.get("/video/frames/{frame_index}")
+async def get_video_frames(frame_index: int):
+    global results_dict
+    
+    if results_dict is None:
+        raise HTTPException(status_code=500, detail="Video data not initialized")
+    
+    frames = {}
+    for video_id, video_frames in results_dict.items():
+        if 0 <= frame_index < len(video_frames):
+            # Convert bytes to base64-encoded string
+            frames[video_id] = base64.b64encode(video_frames[frame_index]).decode('utf-8')
+    
+    return JSONResponse(content=frames)
 
 @app.post("/upload-frames")
 async def upload_frames(request: Request, background_tasks: BackgroundTasks):
@@ -111,7 +156,8 @@ async def upload_frames(request: Request, background_tasks: BackgroundTasks):
 
         if len(frames) >= total_frames:
             logger.info("All frames received. Starting video creation.")
-            background_tasks.add_task(create_composite_video, video_name, frames_list, preprocessed_frames, width, height)
+            background_tasks.add_task(create_multi_video_composite, video_name, frames, results_dict, width, height)
+            # background_tasks.add_task(create_composite_video, video_name, frames_list, preprocessed_frames, width, height)
             # background_tasks.add_task(create_combined_video, video_name, frames_list, preprocessed_frames, width, height)
             # background_tasks.add_task(create_video_from_frames, video_name, total_frames, width, height)
             return JSONResponse(status_code=202, content={'status': 'processing', 'message': 'Video creation started'})
@@ -121,6 +167,63 @@ async def upload_frames(request: Request, background_tasks: BackgroundTasks):
     except Exception as e:
         logger.error(f"Error in upload_frames: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+def create_multi_video_composite(video_name, threejs_frames, video_frames_dict, width, height):
+    try:
+        # Get the size of the threejs frames
+        first_threejs_frame = list(threejs_frames.values())[0]
+        frame_height, frame_width = first_threejs_frame.shape[:2]
+
+        # Initialize VideoWriter
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(str(video_name), fourcc, 30.0, (frame_width, frame_height))
+
+        # Calculate the size for each video overlay
+        num_videos = len(video_frames_dict)
+        overlay_height = int(frame_height / 4)
+        max_overlay_width = int(frame_width / num_videos)
+
+        total_frames = len(threejs_frames)
+        for frame_number in tqdm(range(total_frames), desc="Creating composite video"):
+            # Get the threejs frame
+            threejs_frame = cv2.resize(threejs_frames[frame_number], (frame_width, frame_height))
+            composite_frame = threejs_frame.copy()
+
+            # Calculate total width of all video overlays
+            total_overlay_width = 20
+            resized_frames = []
+            for video_frames in video_frames_dict.values():
+                if frame_number < len(video_frames):
+                    video_frame = cv2.imdecode(np.frombuffer(video_frames[frame_number], np.uint8), cv2.IMREAD_COLOR)
+                    video_aspect_ratio = video_frame.shape[1] / video_frame.shape[0]
+                    new_height = overlay_height
+                    new_width = min(int(new_height * video_aspect_ratio), max_overlay_width)
+                    video_frame_resized = cv2.resize(video_frame, (new_width, new_height))
+                    resized_frames.append(video_frame_resized)
+                    total_overlay_width += new_width
+
+            # Calculate starting x position to center all overlays
+            # start_x = (frame_width - total_overlay_width) // 2
+            start_x = 0
+            padding = 5
+
+            # Add each video frame as an overlay
+            for video_frame_resized in resized_frames:
+                new_height, new_width = video_frame_resized.shape[:2]
+                # Overlay the video frame
+                composite_frame[0:new_height, start_x:start_x+new_width] = video_frame_resized
+                start_x += new_width + padding
+
+            out.write(composite_frame)
+
+        out.release()
+        logger.info(f"Composite video saved as {video_name}")
+
+    except Exception as e:
+        logger.error(f"Error in create_multi_video_composite: {str(e)}")
+
+    except Exception as e:
+        logger.error(f"Error in create_multi_video_composite: {str(e)}")
 
 def create_combined_video(video_name, threejs_frames, video_frames, width, height):
     try:
