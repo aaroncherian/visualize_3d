@@ -27,11 +27,18 @@ const { numFrames } =  storeToRefs(animationStore);
 .slider-container {
   flex: 1;
   padding: 1rem;
-
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px; /* Set a fixed height */
+  display: flex;
+  align-items: center;
 }
+
 
 :deep(.p-slider-handle) {
   transform: translateY(-50%);
 }
+
+
 
 </style>

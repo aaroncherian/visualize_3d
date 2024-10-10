@@ -19,6 +19,12 @@ const { currentFrameNumber } = storeToRefs(animationStore);
   color:black;
 }
 
+.frame-counter-container {
+  display: flex;
+  min-width: 90px; /* Adjust as needed */
+
+}
+
 .frame-counter {
   text-align: center;
   font-weight: bold;
