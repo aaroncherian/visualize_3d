@@ -1,4 +1,5 @@
 <template>
+  <button @click="getQualisys"></button>
   <div ref="container" class="threejs-container"></div>
 </template>
 
@@ -46,9 +47,8 @@ onBeforeUnmount(() => {
 
 onMounted(async () => {
   initializeScene();
-  await fetchData('mediapipe');
   animationStore.setFrameNumber(0)
-  visualizeAvailableSkeletons(animationStore.currentFrameNumber, availableSkeletonData);
+  await fetchData('mediapipe');
   animate();
 
   watch(currentFrameNumber, (newFrame) => {
@@ -67,32 +67,17 @@ let skeletonIDCounter = 0;
 const fetchData = async (trackerType) => {
   try {
     const response = await fetch(`/api/data/${trackerType}`);
-
     // Check if the response was successful (status 200-299)
     if (!response.ok) {
       console.error(`Failed to fetch skeleton data. HTTP status: ${response.status}`);
       return;  // Early exit if fetch fails
     }
 
-    const skeletonData = ref([]);  // Reactive skeletonData
-    skeletonData.value = await response.json();
+    const skeletonData = await response.json();
+    if (!isValidSkeletonData(skeletonData)) throw new Error('Invalid skeleton data');
+    console.log('Skeleton data fetched: ', skeletonData);
 
-    // Validate that skeletonData exists and contains expected properties
-    if (!skeletonData.value || typeof skeletonData.value !== 'object') {
-      console.error('Fetched skeleton data is invalid or empty:', skeletonData.value);
-      return;  // Early exit if skeletonData is not valid
-    }
-
-    console.log('Skeleton data fetched: ', skeletonData.value);
-
-    // Check that num_frames exists before proceeding
-    if (!skeletonData.value.num_frames || typeof skeletonData.value.num_frames !== 'number') {
-      console.error('Skeleton data does not contain valid num_frames:', skeletonData.value);
-      return;  // Early exit if num_frames is invalid
-    }
-
-    console.log(currentFrameNumber.value);
-    animationStore.setNumFrames(skeletonData.value.num_frames - 1);
+    animationStore.setNumFrames(skeletonData.num_frames - 1);
 
     // Initialize Three.js group and add it to the scene
     const skeletonDataGroup = new THREE.Group();
@@ -103,16 +88,16 @@ const fetchData = async (trackerType) => {
     const skeletonID = `skeleton-${skeletonIDCounter}`;
 
     // Store the skeleton data in the availableSkeletonData object
-    const thisSkeletonData = {
+    availableSkeletonData.value[skeletonID] = {
       id: skeletonID,
-      trackerType: trackerType,
+      trackerType,
       data: skeletonData,
       group: skeletonDataGroup
     };
 
-    availableSkeletonData.value[skeletonID] = thisSkeletonData;
-
     console.log(`Skeleton ${skeletonID} added to availableSkeletonData.`);
+    visualizeAvailableSkeletons(animationStore.currentFrameNumber, availableSkeletonData);
+
 
   } catch (error) {
     // Catch and log any unexpected errors
@@ -120,17 +105,21 @@ const fetchData = async (trackerType) => {
   }
 };
 
-const visualizeAvailableSkeletons = (frame, availableSkeletonData) => {
-  for (let skeletonID in availableSkeletonData.value) {
-    const availableSkeleton = availableSkeletonData.value[skeletonID];
-    visualizeData(frame, availableSkeleton.data, availableSkeleton.group);
-  }
+const getQualisys = () => {
+  console.log('Fetching qualisys data');
+  fetchData('qualisys');
 };
 
-const visualizeData = (frame, data, group) => {
-  console.log('Visualizing data for frame:', frame);
-  clearDataGroup(group);
+const visualizeAvailableSkeletons = (frame, availableSkeletonData) => {
+  Object.values(availableSkeletonData.value).forEach(skeleton => {
+    visualizeData(frame, skeleton.data, skeleton.group);
+  });
+};
 
+
+const visualizeData = (frame, data, group) => {
+  // console.log('Visualizing data for frame:', frame);
+  clearDataGroup(group);
   plotSpheresAsJoints(frame, data.trajectories, group)
   plotLinesAsConnections(data.segments, group)
 };
@@ -218,6 +207,11 @@ const initializeScene = () => {
 
 }
 
+const isValidSkeletonData = (data) => {
+  return data && typeof data === 'object' &&
+      typeof data.num_frames === 'number' &&
+      data.trajectories && data.segments;
+};
 
 const animate = function () {
   requestAnimationFrame(animate);
