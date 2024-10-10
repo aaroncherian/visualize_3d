@@ -9,6 +9,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { useAnimationStore } from "@/stores/animationStore.js";
 import { useRendererStore } from '@/stores/rendererStore.js';
 import {storeToRefs} from "pinia";
+import init from "three/addons/offscreen/scene.js";
 
 const animationStore = useAnimationStore();
 const { numFrames, currentFrameNumber } = storeToRefs(animationStore);
@@ -17,6 +18,8 @@ const rendererStore = useRendererStore();
 
 const container = ref(null);
 let skeletonData = ref([]);
+
+let scene, camera, renderer, controls, skeletonDataGroup;
 
 const props = defineProps({
   width: {
@@ -98,37 +101,45 @@ onMounted(() => {
     }
   }
 
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xffffff);
+  const initializeScene = () => {
+    // const scene = new THREE.Scene();
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color(0xffffff);
 
-  const renderer = new THREE.WebGLRenderer();
-  renderer.setSize(container.value.clientWidth, container.value.clientHeight);
-  renderer.setPixelRatio(window.devicePixelRatio); // Set the pixel ratio for better clarity
-  container.value.appendChild(renderer.domElement);
+    // const renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(container.value.clientWidth, container.value.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio); // Set the pixel ratio for better clarity
+    container.value.appendChild(renderer.domElement);
 
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 250, 500);
-  camera.lookAt(0, 0, 0);
-  camera.up.set(0, 0, 1);
+    // const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 250, 500);
+    camera.lookAt(0, 0, 0);
+    camera.up.set(0, 0, 1);
 
-  rendererStore.setScene(scene);
-  rendererStore.setCamera(camera);
-  rendererStore.setRenderer(renderer);
+    rendererStore.setScene(scene);
+    console.log('Scene initialized:', rendererStore.scene);
 
-  console.log('Scene initialized:', rendererStore.scene);
-  console.log('Camera initialized:', rendererStore.camera);
-  console.log('Renderer initialized:', rendererStore.renderer);
+    rendererStore.setCamera(camera);
+    console.log('Camera initialized:', rendererStore.camera);
 
-  const controls = new OrbitControls(camera, renderer.domElement);
+    rendererStore.setRenderer(renderer);
+    console.log('Renderer initialized:', rendererStore.renderer);
 
-  const skeletonDataGroup = new THREE.Group();
-  scene.add(skeletonDataGroup);
-  const grid_size = 500;
-  const grid_divisions = 10;
-  const gridHelper = new THREE.GridHelper(grid_size, grid_divisions);
-  gridHelper.rotation.x = Math.PI / 2;
-  const gridLine = new THREE.Line3(gridHelper.geometry.attributes.position.array[0], gridHelper.geometry.attributes.position.array[1]);
-  scene.add(gridHelper);
+    // const controls = new OrbitControls(camera, renderer.domElement);
+    controls = new OrbitControls(camera, renderer.domElement);
+    // const skeletonDataGroup = new THREE.Group();
+    skeletonDataGroup = new THREE.Group();
+    scene.add(skeletonDataGroup);
+    const grid_size = 500;
+    const grid_divisions = 10;
+    const gridHelper = new THREE.GridHelper(grid_size, grid_divisions);
+    gridHelper.rotation.x = Math.PI / 2;
+    const gridLine = new THREE.Line3(gridHelper.geometry.attributes.position.array[0], gridHelper.geometry.attributes.position.array[1]);
+    scene.add(gridHelper);
+
+  }
 
 
   const animate = function () {
@@ -137,6 +148,7 @@ onMounted(() => {
     renderer.render(scene, camera);
   };
 
+  initializeScene();
   fetchData();
   animate();
 
