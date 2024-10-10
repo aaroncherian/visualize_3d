@@ -9,7 +9,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { useAnimationStore } from "@/stores/animationStore.js";
 import { useRendererStore } from '@/stores/rendererStore.js';
 import {storeToRefs} from "pinia";
-import init from "three/addons/offscreen/scene.js";
 
 const animationStore = useAnimationStore();
 const { numFrames, currentFrameNumber } = storeToRefs(animationStore);
@@ -37,9 +36,9 @@ onMounted(() => {
 
 
 
-  const fetchData = async () => {
+  const fetchData = async (trackerType) => {
     try {
-      const response = await fetch('/api/data');
+      const response = await fetch(`/api/data/${trackerType}`);
       skeletonData.value = await response.json();
       console.log('Skeleton data fetched: ', skeletonData.value);
       console.log(currentFrameNumber.value)
@@ -149,7 +148,7 @@ onMounted(() => {
   };
 
   initializeScene();
-  fetchData();
+  fetchData('mediapipe');
   animate();
 
   watch(currentFrameNumber, (newFrame) => {

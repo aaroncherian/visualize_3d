@@ -298,8 +298,8 @@ async def get_index():
     return FileResponse("backend/static/index.html")
 
     
-@app.get("/data")
-async def get_data():
+@app.get("/data/{tracker_type}")
+async def get_data(tracker_type:str):
     try:
         np_data = np.load(data_3d_path)
 
