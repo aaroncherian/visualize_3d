@@ -6,7 +6,6 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import api from '../services/api';
 import { useAnimationStore } from "@/stores/animationStore.js";
 import { useRendererStore } from '@/stores/rendererStore.js';
 import {storeToRefs} from "pinia";
@@ -37,8 +36,8 @@ onMounted(() => {
 
   const fetchData = async () => {
     try {
-      const response = await api.getData();
-      skeletonData.value = response.data;
+      const response = await fetch('/api/data');
+      skeletonData.value = await response.json();
       console.log('Skeleton data fetched: ', skeletonData.value);
       console.log(currentFrameNumber.value)
       animationStore.setNumFrames(skeletonData.value.num_frames - 1);
