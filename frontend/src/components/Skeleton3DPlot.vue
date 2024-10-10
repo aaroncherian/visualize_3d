@@ -1,25 +1,28 @@
 <template>
-  <button @click="getQualisys"></button>
+<!--  <button @click="getQualisys"></button>-->
   <div ref="container" class="threejs-container"></div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, defineExpose } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { useAnimationStore } from "@/stores/animationStore.js";
 import { useRendererStore } from '@/stores/rendererStore.js';
+import {useSkeletonStore} from "@/stores/skeletonStore.js";
 import {storeToRefs} from "pinia";
 
 const animationStore = useAnimationStore();
 const { numFrames, currentFrameNumber } = storeToRefs(animationStore);
 
 const rendererStore = useRendererStore();
+const skeletonStore = useSkeletonStore();
 
 const container = ref(null);
 let availableSkeletonData = ref({});
 
 let scene, camera, renderer, controls;
+
 
 
 const props = defineProps({
@@ -76,6 +79,16 @@ onMounted(async () => {
     visualizeAvailableSkeletons(newFrame, availableSkeletonData)
   });
 
+  watch(
+      () => skeletonStore.fetchSource,
+      (newSource) => {
+        if (newSource) {
+          fetchData(newSource);
+          skeletonStore.resetFetch(); // Reset after fetching if needed
+        }
+      }
+  );
+
 
   setTimeout(handleResize, 0); // Trigger resize to ensure correct dimensions after initial load
 
@@ -125,6 +138,8 @@ const fetchData = async (trackerType) => {
     console.error('Error fetching or processing skeleton data:', error);
   }
 };
+defineExpose({ fetchData });
+
 
 const getQualisys = () => {
   console.log('Fetching qualisys data');
@@ -255,6 +270,8 @@ const animate = function () {
   requestAnimationFrame(animate);
   controls.update();
   renderer.render(scene, camera);
+
+
 };
 </script>
 
