@@ -19,9 +19,8 @@ const rendererStore = useRendererStore();
 const container = ref(null);
 let availableSkeletonData = ref({});
 
-let scene, camera, renderer, controls, skeletonDataGroup;
+let scene, camera, renderer, controls;
 
-const skeletonDataObject = {};
 
 const props = defineProps({
   width: {
@@ -33,6 +32,28 @@ const props = defineProps({
     default: '100%'
   }
 });
+
+const skeletonSphereColorMap = {
+  mediapipe: 0x1857ba,  // Blue
+  qualisys: 0xf54242,   // Red
+  // Add more mappings as needed
+  default: 0x000000     // Black (default color)
+};
+
+const skeletonLineColorMap = {
+  mediapipe: 0x0a367a,  // Blue
+  qualisys: 0xab1515,   // Red
+  // Add more mappings as needed
+  default: 0x000000     // Black (default color)
+};
+
+const getSkeletonSphereColor = (trackerType) => {
+  return skeletonSphereColorMap[trackerType] || skeletonSphereColorMap.default;
+};
+
+const getSkeletonLineColor = (trackerType) => {
+  return skeletonLineColorMap[trackerType] || skeletonLineColorMap.default;
+}
 
 const handleResize = () => {
   camera.aspect = container.value.clientWidth / container.value.clientHeight;
@@ -112,16 +133,16 @@ const getQualisys = () => {
 
 const visualizeAvailableSkeletons = (frame, availableSkeletonData) => {
   Object.values(availableSkeletonData.value).forEach(skeleton => {
-    visualizeData(frame, skeleton.data, skeleton.group);
+    visualizeData(frame, skeleton.data, skeleton.group, skeleton.trackerType);
   });
 };
 
 
-const visualizeData = (frame, data, group) => {
+const visualizeData = (frame, data, group, trackerType) => {
   // console.log('Visualizing data for frame:', frame);
   clearDataGroup(group);
-  plotSpheresAsJoints(frame, data.trajectories, group)
-  plotLinesAsConnections(data.segments, group)
+  plotSpheresAsJoints(frame, data.trajectories, group, trackerType)
+  plotLinesAsConnections(data.segments, group, trackerType)
 };
 
 const clearDataGroup = (groupToClear) => {
@@ -133,27 +154,45 @@ const clearDataGroup = (groupToClear) => {
   }
 };
 
-const plotSpheresAsJoints = (frame, trajectories, group) => {
-
+const plotSpheresAsJoints = (frame, trajectories, group, trackerType) => {
   const defaultSphereGeometry = new THREE.SphereGeometry(2, 16, 16);
   const selectedSphereGeometry = new THREE.SphereGeometry(2.5, 16, 16);
-  const defaultSphereMaterial = new THREE.MeshBasicMaterial({color: 0x000000});
+  const sphereColor = getSkeletonSphereColor(trackerType);
+  const outlineMaterial = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    side: THREE.BackSide
+  });
+  const defaultSphereMaterial = new THREE.MeshBasicMaterial({color: sphereColor});
   const selectedSphereMaterial = new THREE.MeshBasicMaterial({color: 0x009aa6});
 
   for (const markerName in trajectories) {
     const markerData = trajectories[markerName];
     if (markerData && markerData[frame]) {
+      // Create main sphere
       const sphereMaterial = defaultSphereMaterial;
       const sphereGeometry = defaultSphereGeometry;
       const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
       sphere.position.set(markerData[frame][0] / 10, markerData[frame][1] / 10, markerData[frame][2] / 10);
       sphere.name = markerName;
+
+      // Create outline sphere
+      // const outlineSphere = new THREE.Mesh(sphereGeometry, outlineMaterial);
+      // outlineSphere.position.copy(sphere.position);
+      // outlineSphere.scale.multiplyScalar(1.2); // Make it slightly larger
+
+      // Add both spheres to the group
       group.add(sphere);
+      // group.add(outlineSphere);
     }
   }
 }
 
-const plotLinesAsConnections = (connections, group) => {
+const plotLinesAsConnections = (connections, group, trackerType) => {
+  const lineColor = getSkeletonLineColor(trackerType);
+  const lineMaterial = new THREE.LineBasicMaterial({
+    color: lineColor,
+  });
+
   const lineVertices = [];
   for (const [segmentName, segmentData] of Object.entries(connections)) {
     lineVertices.length = 0
@@ -161,7 +200,6 @@ const plotLinesAsConnections = (connections, group) => {
       lineVertices.push(group.getObjectByName(markerName).position.clone())
     }
     const lineGeometry = new THREE.BufferGeometry().setFromPoints(lineVertices);
-    const lineMaterial = new THREE.LineBasicMaterial({color: 0x000000});
     const lineObject = new THREE.Line(lineGeometry, lineMaterial);
     group.add(lineObject);
   }
