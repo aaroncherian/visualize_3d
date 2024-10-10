@@ -156,7 +156,8 @@ async def upload_frames(request: Request, background_tasks: BackgroundTasks):
 
         if len(frames) >= total_frames:
             logger.info("All frames received. Starting video creation.")
-            background_tasks.add_task(create_composite_video, video_name, frames_list, preprocessed_frames, width, height)
+            background_tasks.add_task(create_multi_video_composite, video_name, frames, results_dict, width, height)
+            # background_tasks.add_task(create_composite_video, video_name, frames_list, preprocessed_frames, width, height)
             # background_tasks.add_task(create_combined_video, video_name, frames_list, preprocessed_frames, width, height)
             # background_tasks.add_task(create_video_from_frames, video_name, total_frames, width, height)
             return JSONResponse(status_code=202, content={'status': 'processing', 'message': 'Video creation started'})
@@ -166,6 +167,63 @@ async def upload_frames(request: Request, background_tasks: BackgroundTasks):
     except Exception as e:
         logger.error(f"Error in upload_frames: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+def create_multi_video_composite(video_name, threejs_frames, video_frames_dict, width, height):
+    try:
+        # Get the size of the threejs frames
+        first_threejs_frame = list(threejs_frames.values())[0]
+        frame_height, frame_width = first_threejs_frame.shape[:2]
+
+        # Initialize VideoWriter
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(str(video_name), fourcc, 30.0, (frame_width, frame_height))
+
+        # Calculate the size for each video overlay
+        num_videos = len(video_frames_dict)
+        overlay_height = int(frame_height / 4)
+        max_overlay_width = int(frame_width / num_videos)
+
+        total_frames = len(threejs_frames)
+        for frame_number in tqdm(range(total_frames), desc="Creating composite video"):
+            # Get the threejs frame
+            threejs_frame = cv2.resize(threejs_frames[frame_number], (frame_width, frame_height))
+            composite_frame = threejs_frame.copy()
+
+            # Calculate total width of all video overlays
+            total_overlay_width = 20
+            resized_frames = []
+            for video_frames in video_frames_dict.values():
+                if frame_number < len(video_frames):
+                    video_frame = cv2.imdecode(np.frombuffer(video_frames[frame_number], np.uint8), cv2.IMREAD_COLOR)
+                    video_aspect_ratio = video_frame.shape[1] / video_frame.shape[0]
+                    new_height = overlay_height
+                    new_width = min(int(new_height * video_aspect_ratio), max_overlay_width)
+                    video_frame_resized = cv2.resize(video_frame, (new_width, new_height))
+                    resized_frames.append(video_frame_resized)
+                    total_overlay_width += new_width
+
+            # Calculate starting x position to center all overlays
+            # start_x = (frame_width - total_overlay_width) // 2
+            start_x = 0
+            padding = 5
+
+            # Add each video frame as an overlay
+            for video_frame_resized in resized_frames:
+                new_height, new_width = video_frame_resized.shape[:2]
+                # Overlay the video frame
+                composite_frame[0:new_height, start_x:start_x+new_width] = video_frame_resized
+                start_x += new_width + padding
+
+            out.write(composite_frame)
+
+        out.release()
+        logger.info(f"Composite video saved as {video_name}")
+
+    except Exception as e:
+        logger.error(f"Error in create_multi_video_composite: {str(e)}")
+
+    except Exception as e:
+        logger.error(f"Error in create_multi_video_composite: {str(e)}")
 
 def create_combined_video(video_name, threejs_frames, video_frames, width, height):
     try:
