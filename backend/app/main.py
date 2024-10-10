@@ -13,7 +13,7 @@ import base64
 
 import logging
 from tqdm import tqdm
-from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model
+from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model
 from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
 
 from multiprocessing import Pool
@@ -24,11 +24,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
-recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
+# recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\sesh_2022-09-19_16_16_50_in_class_jsm')
-output_data_folder_path = recording_folder_path / 'output_data'
-tracker_type = 'mediapipe'
-data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
+recording_folder_path = Path(r'D:\2024-04-25_P01\1.0_recordings\sesh_2024-04-25_15_44_19_P01_WalkRun_Trial1')
+# output_data_folder_path = recording_folder_path / 'output_data'
+mediapipe_output_data_folder_path = recording_folder_path / 'aligned_data'
+qualisys_output_data_folder_path = recording_folder_path / 'qualisys_data'
+# tracker_type = 'mediapipe'
+# data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
+
+
 
 video_name = recording_folder_path/'test_video.mp4'
 annotated_video_folder_path = recording_folder_path/'annotated_videos'
@@ -57,6 +62,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/data/{tracker_type}")
+async def get_data(tracker_type:str):
+    try:
+        if tracker_type == 'mediapipe':
+            data3d = np.load(mediapipe_output_data_folder_path / 'mediapipe_body_3d_xyz.npy')
+            skeleton = create_mediapipe_skeleton_model()
+        elif tracker_type == 'qualisys':
+            data3d = np.load(qualisys_output_data_folder_path / 'qualisys_joint_centers_3d_xyz.npy')
+            skeleton = create_qualisys_skeleton_model()
+        else:
+            raise HTTPException(status_code=400, detail="Unknown tracker type")
+        
+        skeleton.integrate_freemocap_3d_data(data3d)
+        return skeleton.to_custom_dict()
+    except Exception as e:
+        logger.error(f"Error serving data: {e}")
+        raise HTTPException(status_code=500, detail=f"Error serving data: {e}")
+
 
 # app.mount("/static", StaticFiles(directory="skeleton-visualization/fast_api"), name="static")
 
@@ -297,22 +321,6 @@ async def get_index():
     logger.info("Serving index.html")
     return FileResponse("backend/static/index.html")
 
-    
-@app.get("/data")
-async def get_data():
-    try:
-        np_data = np.load(data_3d_path)
-
-        if tracker_type == 'mediapipe':
-            skeleton = create_mediapipe_skeleton_model()
-        else:
-            raise HTTPException(status_code=400, detail="Unknown tracker type")
-        
-        skeleton.integrate_freemocap_3d_data(np_data)
-        return skeleton.to_custom_dict()
-    except Exception as e:
-        logger.error(f"Error serving data: {e}")
-        raise HTTPException(status_code=500, detail=f"Error serving data: {e}")
 
 @app.get("/video/frame/{frame_index}")
 async def get_video_frame(frame_index:int):
