@@ -24,8 +24,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
-# recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
-recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\sesh_2022-09-19_16_16_50_in_class_jsm')
+recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
+# recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\sesh_2022-09-19_16_16_50_in_class_jsm')
 output_data_folder_path = recording_folder_path / 'output_data'
 tracker_type = 'mediapipe'
 data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
