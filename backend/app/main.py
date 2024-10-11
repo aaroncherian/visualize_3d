@@ -26,9 +26,12 @@ logger = logging.getLogger(__name__)
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
 # recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\sesh_2022-09-19_16_16_50_in_class_jsm')
-recording_folder_path = Path(r'D:\2024-04-25_P01\1.0_recordings\sesh_2024-04-25_15_44_19_P01_WalkRun_Trial1')
-# output_data_folder_path = recording_folder_path / 'output_data'
+# recording_folder_path = Path(r'D:\2024-04-25_P01\1.0_recordings\sesh_2024-04-25_15_44_19_P01_WalkRun_Trial1')
+recording_folder_path = Path(r'D:\2024-08-01_treadmill_KK_JSM_ATC\1.0_recordings\sesh_2024-08-01_16_18_26_JSM_wrecking_ball')
+output_data_folder_path = recording_folder_path / 'output_data'
 mediapipe_output_data_folder_path = recording_folder_path / 'aligned_data'
+mediapipe_output_data_folder_path = recording_folder_path / 'output_data'
+mediapipe_centered_output_data_folder_path = recording_folder_path / 'output_data'/'origin_aligned_data'
 qualisys_output_data_folder_path = recording_folder_path / 'qualisys_data'
 # tracker_type = 'mediapipe'
 # data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
@@ -67,7 +70,7 @@ app.add_middleware(
 async def get_data(tracker_type:str):
     try:
         if tracker_type == 'mediapipe':
-            data3d = np.load(mediapipe_output_data_folder_path / 'mediapipe_body_3d_xyz.npy')
+            data3d = np.load(mediapipe_centered_output_data_folder_path / 'mediapipe_body_3d_xyz.npy')
             skeleton = create_mediapipe_skeleton_model()
         elif tracker_type == 'qualisys':
             data3d = np.load(qualisys_output_data_folder_path / 'qualisys_joint_centers_3d_xyz.npy')
@@ -205,7 +208,23 @@ def create_multi_video_composite(video_name, threejs_frames, video_frames_dict, 
         # Calculate the size for each video overlay
         num_videos = len(video_frames_dict)
         overlay_height = int(frame_height / 4)
-        max_overlay_width = int(frame_width / num_videos)
+        max_overlay_width = int(frame_width / 2)
+        padding = 5
+
+        # Pre-calculate video sizes
+        video_sizes = []
+        for video_frames in video_frames_dict.values():
+            if len(video_frames) > 0:
+                first_frame = cv2.imdecode(np.frombuffer(video_frames[0], np.uint8), cv2.IMREAD_COLOR)
+                aspect_ratio = first_frame.shape[1] / first_frame.shape[0]
+                new_height = overlay_height
+                new_width = min(int(new_height * aspect_ratio), max_overlay_width)
+                video_sizes.append((new_width, new_height))
+            else:
+                video_sizes.append((0, 0))
+
+        # Calculate the width for each column (including padding)
+        column_width = max(size[0] for size in video_sizes) + padding
 
         total_frames = len(threejs_frames)
         for frame_number in tqdm(range(total_frames), desc="Creating composite video"):
@@ -213,30 +232,20 @@ def create_multi_video_composite(video_name, threejs_frames, video_frames_dict, 
             threejs_frame = cv2.resize(threejs_frames[frame_number], (frame_width, frame_height))
             composite_frame = threejs_frame.copy()
 
-            # Calculate total width of all video overlays
-            total_overlay_width = 20
-            resized_frames = []
-            for video_frames in video_frames_dict.values():
+            # Prepare and overlay video frames
+            for i, (video_frames, (new_width, new_height)) in enumerate(zip(video_frames_dict.values(), video_sizes)):
                 if frame_number < len(video_frames):
                     video_frame = cv2.imdecode(np.frombuffer(video_frames[frame_number], np.uint8), cv2.IMREAD_COLOR)
-                    video_aspect_ratio = video_frame.shape[1] / video_frame.shape[0]
-                    new_height = overlay_height
-                    new_width = min(int(new_height * video_aspect_ratio), max_overlay_width)
                     video_frame_resized = cv2.resize(video_frame, (new_width, new_height))
-                    resized_frames.append(video_frame_resized)
-                    total_overlay_width += new_width
 
-            # Calculate starting x position to center all overlays
-            # start_x = (frame_width - total_overlay_width) // 2
-            start_x = 0
-            padding = 5
+                    # Calculate position for 2-column layout
+                    row = i // 2
+                    col = i % 2
+                    y_start = row * (overlay_height + padding)
+                    x_start = col * column_width
 
-            # Add each video frame as an overlay
-            for video_frame_resized in resized_frames:
-                new_height, new_width = video_frame_resized.shape[:2]
-                # Overlay the video frame
-                composite_frame[0:new_height, start_x:start_x+new_width] = video_frame_resized
-                start_x += new_width + padding
+                    # Overlay the video frame
+                    composite_frame[y_start:y_start+new_height, x_start:x_start+new_width] = video_frame_resized
 
             out.write(composite_frame)
 
@@ -245,10 +254,6 @@ def create_multi_video_composite(video_name, threejs_frames, video_frames_dict, 
 
     except Exception as e:
         logger.error(f"Error in create_multi_video_composite: {str(e)}")
-
-    except Exception as e:
-        logger.error(f"Error in create_multi_video_composite: {str(e)}")
-
 def create_combined_video(video_name, threejs_frames, video_frames, width, height):
     try:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
