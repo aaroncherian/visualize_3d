@@ -80,11 +80,11 @@ onMounted(async () => {
   });
 
   watch(
-      () => skeletonStore.fetchSource,
-      (newSource) => {
-        if (newSource) {
-          fetchData(newSource);
-          skeletonStore.resetFetch(); // Reset after fetching if needed
+      () => skeletonStore.trackerToFetch,
+      (newTracker) => {
+        if (newTracker) {
+          fetchData(newTracker);
+          skeletonStore.resetFetchTracker(); // Reset after fetching if needed
         }
       }
   );

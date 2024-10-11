@@ -2,7 +2,7 @@
   <div>
     <Button icon="pi pi-bars" @click="toggleSidebar" class="sidebar-toggle p-button-rounded" />
     <Sidebar v-model:visible="visible" position="right" :baseZIndex="1000" class="p-sidebar-sm">
-      <button @click="triggerFetch('qualisys')">Fetch Qualisys Data</button>
+      <Button @click="triggerFetch('qualisys')" label="Add Qualisys Data" />
     </Sidebar>
   </div>
 </template>
@@ -25,9 +25,11 @@ const toggleSidebar = () => {
 };
 
 // Function to trigger fetching data from a specified source
-const triggerFetch = (source) => {
-  skeletonStore.triggerFetch(source); // This will dynamically fetch the provided source
+const triggerFetch = (trackerToFetch) => {
+  skeletonStore.triggerDataFetch(trackerToFetch); // This will dynamically fetch the provided source
 };
+
+
 </script>
 
 <style scoped>

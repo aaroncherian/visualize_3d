@@ -3,21 +3,21 @@ import { ref } from 'vue';
 
 export const useSkeletonStore = defineStore('skeleton', () => {
     // State
-    const fetchSource = ref('');
+    const trackerToFetch = ref('');
 
     // Action to trigger fetching data from a specific source
-    const triggerFetch = (source) => {
-        fetchSource.value = source;
+    const triggerDataFetch = (tracker) => {
+        trackerToFetch.value = tracker;
     };
 
     // Reset the fetch source
-    const resetFetch = () => {
-        fetchSource.value = '';
+    const resetFetchTracker = () => {
+        trackerToFetch.value = '';
     };
 
     return {
-        fetchSource,
-        triggerFetch,
-        resetFetch,
+        trackerToFetch,
+        triggerDataFetch,
+        resetFetchTracker,
     };
 });
