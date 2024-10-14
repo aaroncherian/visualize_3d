@@ -67,16 +67,17 @@ const axisChartData = computed(() => {
           borderColor: '#1E88E5',
           borderWidth: 2,
           pointRadius: 0,
-          tension: 0.4
+          tension: 0.4,
+          order: 2
         },
         ...(qualisys && qualisys.trajectories[jointName] ? [{
           label: 'Qualisys',
           data: qualisys.trajectories[jointName].map(frame => frame[index]),
           borderColor: '#FFA726',
           borderWidth: 2,
-          borderDash: [5, 5],
           pointRadius: 0,
-          tension: 0.4
+          tension: 0.4,
+          order: 1
         }] : [])
       ]
     };
