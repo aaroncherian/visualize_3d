@@ -13,7 +13,7 @@ import base64
 
 import logging
 from tqdm import tqdm
-from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model
+from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model, create_qualisys_mdn_nih_skeleton_model, create_qualisys_mdn_treadmill_skeleton_model
 from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
 
 from multiprocessing import Pool
@@ -27,11 +27,12 @@ logger = logging.getLogger(__name__)
 # recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\sesh_2022-09-19_16_16_50_in_class_jsm')
 # recording_folder_path = Path(r'D:\2024-04-25_P01\1.0_recordings\sesh_2024-04-25_15_44_19_P01_WalkRun_Trial1')
-recording_folder_path = Path(r'D:\2024-08-01_treadmill_KK_JSM_ATC\1.0_recordings\sesh_2024-08-01_16_18_26_JSM_wrecking_ball')
-output_data_folder_path = recording_folder_path / 'output_data'
+# recording_folder_path = Path(r'D:\2024-08-01_treadmill_KK_JSM_ATC\1.0_recordings\sesh_2024-08-01_16_18_26_JSM_wrecking_ball')
+recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_15_36_03_MDN_OneLeg_Trial1')
+recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_48_44_MDN_treadmill_2')
 mediapipe_output_data_folder_path = recording_folder_path / 'aligned_data'
-mediapipe_output_data_folder_path = recording_folder_path / 'output_data'
-mediapipe_centered_output_data_folder_path = recording_folder_path / 'output_data'/'origin_aligned_data'
+mediapipe_output_data_folder_path = recording_folder_path / 'output_data'/'aligned_data'
+# mediapipe_centered_output_data_folder_path = recording_folder_path / 'output_data'/'origin_aligned_data'
 qualisys_output_data_folder_path = recording_folder_path / 'qualisys_data'
 # tracker_type = 'mediapipe'
 # data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
@@ -70,7 +71,7 @@ app.add_middleware(
 async def get_data(tracker_type:str):
     try:
         if tracker_type == 'mediapipe':
-            data3d = np.load(mediapipe_centered_output_data_folder_path / 'mediapipe_body_3d_xyz.npy')
+            data3d = np.load(mediapipe_output_data_folder_path / 'mediapipe_body_3d_xyz.npy')
             skeleton = create_mediapipe_skeleton_model()
         elif tracker_type == 'qualisys':
             data3d = np.load(qualisys_output_data_folder_path / 'qualisys_joint_centers_3d_xyz.npy')
