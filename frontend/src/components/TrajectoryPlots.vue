@@ -1,9 +1,9 @@
 <template>
   <div class="trajectory-plots">
-    <Dropdown v-model="selectedJoint" :options="jointOptions" optionLabel="name" placeholder="Select a joint" class="mb-3" />
+    <Dropdown v-model="selectedJoint" :options="jointOptions" optionLabel="name" placeholder="Select a joint" class="mb-3 w-full" />
     <div v-if="selectedJoint" class="grid">
-      <div class="col-12">
-        <Chart type="line" :data="selectedJointData" :options="chartOptions" class="h-30rem" />
+      <div v-for="(chartData, axis) in axisChartData" :key="axis" class="col-12 md:col-4 mb-3">
+        <Chart type="line" :data="chartData" :options="getChartOptions(axis)" class="h-20rem" />
       </div>
     </div>
   </div>
@@ -50,60 +50,50 @@ const jointOptions = computed(() => {
   return trajectoryData.value.mediapipe.markers.map(marker => ({name: marker, code: marker}));
 });
 
-const processedData = computed(() => {
-  if (!trajectoryData.value) return {};
+const axisChartData = computed(() => {
+  if (!selectedJoint.value || !trajectoryData.value) return {};
 
   const {mediapipe, qualisys} = trajectoryData.value;
-  const processedData = {};
+  const jointName = selectedJoint.value.code;
+  const labels = [...Array(mediapipe.trajectories[jointName].length).keys()];
 
-  for (const jointName of mediapipe.markers) {
-    const datasets = [];
-    const axes = ['x', 'y', 'z'];
-    const colors = ['blue', 'green', 'red'];
-
-    axes.forEach((axis, index) => {
-      datasets.push({
-        label: `Mediapipe ${axis.toUpperCase()}`,
-        data: mediapipe.trajectories[jointName].map(frame => frame[index]),
-        borderColor: colors[index],
-        tension: 0.4
-      });
-
-      if (qualisys && qualisys.trajectories[jointName]) {
-        datasets.push({
-          label: `Qualisys ${axis.toUpperCase()}`,
-          data: qualisys.trajectories[jointName].map(frame => frame[index]),
-          borderColor: colors[index],
-          borderDash: [5, 5],
+  return ['x', 'y', 'z'].reduce((acc, axis, index) => {
+    acc[axis] = {
+      labels,
+      datasets: [
+        {
+          label: 'Mediapipe',
+          data: mediapipe.trajectories[jointName].map(frame => frame[index]),
+          borderColor: '#1E88E5',
+          borderWidth: 2,
+          pointRadius: 0,
           tension: 0.4
-        });
-      }
-    });
-
-    processedData[jointName] = {
-      labels: [...Array(mediapipe.trajectories[jointName].length).keys()],
-      datasets: datasets
+        },
+        ...(qualisys && qualisys.trajectories[jointName] ? [{
+          label: 'Qualisys',
+          data: qualisys.trajectories[jointName].map(frame => frame[index]),
+          borderColor: '#FFA726',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          pointRadius: 0,
+          tension: 0.4
+        }] : [])
+      ]
     };
-  }
-
-  return processedData;
+    return acc;
+  }, {});
 });
 
-const selectedJointData = computed(() => {
-  if (!selectedJoint.value) return null;
-  return processedData.value[selectedJoint.value.code];
-});
-
-const chartOptions = computed(() => ({
+const getChartOptions = (axis) => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'bottom'
+      position: 'top'
     },
     title: {
       display: true,
-      text: selectedJoint.value ? `${selectedJoint.value.name} Trajectory` : 'Joint Trajectory'
+      text: `${selectedJoint.value.name} - ${axis.toUpperCase()} Trajectory`
     }
   },
   scales: {
@@ -111,6 +101,9 @@ const chartOptions = computed(() => ({
       title: {
         display: true,
         text: 'Frame'
+      },
+      ticks: {
+        maxTicksLimit: 10
       }
     },
     y: {
@@ -120,7 +113,7 @@ const chartOptions = computed(() => ({
       }
     }
   }
-}));
+});
 
 watch(currentFrameNumber, (newFrame) => {
   // This function will be implemented later for dynamic updates
@@ -130,5 +123,6 @@ watch(currentFrameNumber, (newFrame) => {
 <style scoped>
 .trajectory-plots {
   padding: 1rem;
+  width: 100%;
 }
 </style>

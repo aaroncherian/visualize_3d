@@ -1,6 +1,6 @@
 <template>
   <div class="card trajectory-plots-card">
-    <h3>Joint Trajectory</h3>
+    <h3>Joint Trajectories</h3>
     <TrajectoryPlots />
   </div>
 </template>
@@ -16,7 +16,7 @@ import TrajectoryPlots from '@/components/TrajectoryPlots.vue';
   padding: 1rem;
   box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
   height: 100%;
-  width: 100%; /* Ensure the card takes full width */
+  width: 100%;
   overflow: auto;
 }
 
