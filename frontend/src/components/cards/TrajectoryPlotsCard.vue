@@ -23,5 +23,6 @@ import TrajectoryPlots from '@/components/TrajectoryPlots.vue';
 h3 {
   margin-top: 0;
   margin-bottom: 1rem;
+  color: black;
 }
 </style>
