@@ -10,18 +10,18 @@
 </template>
 
 <script setup>
-import {ref, onMounted, computed, watch} from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import Chart from 'primevue/chart';
 import Dropdown from 'primevue/dropdown';
-import {useAnimationStore} from '@/stores/animationStore';
-import {storeToRefs} from 'pinia';
+import { useAnimationStore } from '@/stores/animationStore';
+import { storeToRefs } from 'pinia';
 
 const animationStore = useAnimationStore();
-const {currentFrameNumber, numFrames} = storeToRefs(animationStore);
+const { currentFrameNumber, numFrames } = storeToRefs(animationStore);
 
 const trajectoryData = ref(null);
 const selectedJoint = ref(null);
-const windowSize = 100; // Total number of frames to show (4 before, 1 current, 4 after)
+const windowSize = 100; // Total number of frames to show
 
 onMounted(async () => {
   await fetchTrajectoryData();
@@ -40,7 +40,7 @@ const fetchTrajectoryData = async () => {
       console.log('Qualisys data not available');
     }
 
-    trajectoryData.value = {mediapipe: mediapipeData, qualisys: qualisysData};
+    trajectoryData.value = { mediapipe: mediapipeData, qualisys: qualisysData };
   } catch (error) {
     console.error('Error fetching trajectory data:', error);
   }
@@ -48,13 +48,13 @@ const fetchTrajectoryData = async () => {
 
 const jointOptions = computed(() => {
   if (!trajectoryData.value?.mediapipe?.markers) return [];
-  return trajectoryData.value.mediapipe.markers.map(marker => ({name: marker, code: marker}));
+  return trajectoryData.value.mediapipe.markers.map(marker => ({ name: marker, code: marker }));
 });
 
 const axisChartData = computed(() => {
   if (!selectedJoint.value || !trajectoryData.value) return {};
 
-  const {mediapipe, qualisys} = trajectoryData.value;
+  const { mediapipe, qualisys } = trajectoryData.value;
   const jointName = selectedJoint.value.code;
   const currentFrame = currentFrameNumber.value;
   const totalFrames = mediapipe.trajectories[jointName].length;
@@ -85,7 +85,7 @@ const axisChartData = computed(() => {
     const yPadding = (maxY - minY) * 0.1; // 10% padding
 
     const freemocapColor = '#1E88E5'; // Blue
-    const qualisysColor = '#f54242'; // Orange
+    const qualisysColor = '#f54242'; // Red
 
     acc[axis] = {
       labels,
@@ -113,8 +113,8 @@ const axisChartData = computed(() => {
         {
           label: 'Current Frame',
           data: [
-            {x: currentFrame, y: minY - yPadding},
-            {x: currentFrame, y: maxY + yPadding}
+            { x: currentFrame, y: minY - yPadding },
+            { x: currentFrame, y: maxY + yPadding }
           ],
           borderColor: 'black',
           borderWidth: 2,
@@ -129,7 +129,8 @@ const axisChartData = computed(() => {
           borderWidth: 0,
           pointRadius: 6,
           pointHoverRadius: 8,
-          order: 1
+          order: 1,
+          showLine: false
         },
         ...(qualisys && qualisys.trajectories[jointName] ? [{
           label: 'Qualisys Current Frame',
@@ -139,7 +140,8 @@ const axisChartData = computed(() => {
           borderWidth: 0,
           pointRadius: 6,
           pointHoverRadius: 8,
-          order: 0 // Highest order, drawn last
+          order: 0, // Highest order, drawn last
+          showLine: false
         }] : [])
       ],
       yAxisMin: minY - yPadding,
@@ -155,11 +157,21 @@ const getChartOptions = (axis) => ({
   animation: false, // Disable animations for better performance
   plugins: {
     legend: {
-      position: 'top'
+      position: 'top',
+      labels: {
+        filter: (item) => !item.text.includes('Current Frame'),
+        font: {
+          size: 14 // Increase legend font size
+        }
+      }
     },
     title: {
       display: true,
-      text: `${selectedJoint.value.name} - ${axis.toUpperCase()} Trajectory`
+      text: `${selectedJoint.value.name} - ${axis.toUpperCase()} Trajectory`,
+      font: {
+        size: 18, // Increase title font size
+        weight: 'bold'
+      }
     }
   },
   scales: {
@@ -167,12 +179,19 @@ const getChartOptions = (axis) => ({
       type: 'linear',
       title: {
         display: true,
-        text: 'Frame'
+        text: 'Frame',
+        font: {
+          size: 16, // Increase x-axis title font size
+          weight: 'bold'
+        }
       },
       ticks: {
         maxTicksLimit: 10,
         stepSize: 1,
-        precision: 0
+        precision: 0,
+        font: {
+          size: 12 // Increase x-axis tick font size
+        }
       },
       min: axisChartData.value[axis].labels[0],
       max: axisChartData.value[axis].labels[axisChartData.value[axis].labels.length - 1]
@@ -180,7 +199,16 @@ const getChartOptions = (axis) => ({
     y: {
       title: {
         display: true,
-        text: 'Position (mm)'
+        text: 'Position (mm)',
+        font: {
+          size: 16, // Increase y-axis title font size
+          weight: 'bold'
+        }
+      },
+      ticks: {
+        font: {
+          size: 12 // Increase y-axis tick font size
+        }
       },
       min: axisChartData.value[axis].yAxisMin,
       max: axisChartData.value[axis].yAxisMax
