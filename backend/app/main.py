@@ -13,7 +13,7 @@ import base64
 
 import logging
 from tqdm import tqdm
-from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model, create_qualisys_mdn_nih_skeleton_model, create_qualisys_mdn_treadmill_skeleton_model
+from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model, create_qualisys_tf01_skeleton_model 
 from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
 
 from multiprocessing import Pool
@@ -30,8 +30,10 @@ logger = logging.getLogger(__name__)
 # recording_folder_path = Path(r'D:\2024-08-01_treadmill_KK_JSM_ATC\1.0_recordings\sesh_2024-08-01_16_18_26_JSM_wrecking_ball')
 recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_15_36_03_MDN_OneLeg_Trial1')
 recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_48_44_MDN_treadmill_2')
+recording_folder_path = Path(r'D:\2023-06-07_TF01\1.0_recordings\treadmill_calib\sesh_2023-06-07_12_06_15_TF01_flexion_neutral_trial_1')
 mediapipe_output_data_folder_path = recording_folder_path / 'aligned_data'
-mediapipe_output_data_folder_path = recording_folder_path / 'output_data'/'aligned_data'
+# mediapipe_output_data_folder_path = recording_folder_path / 'output_data'/'aligned_data
+mediapipe_output_data_folder_path = recording_folder_path / 'mediapipe_dlc_output_data'/'aligned_data'
 # mediapipe_centered_output_data_folder_path = recording_folder_path / 'output_data'/'origin_aligned_data'
 qualisys_output_data_folder_path = recording_folder_path / 'qualisys_data'
 # tracker_type = 'mediapipe'
@@ -75,7 +77,7 @@ async def get_data(tracker_type:str):
             skeleton = create_mediapipe_skeleton_model()
         elif tracker_type == 'qualisys':
             data3d = np.load(qualisys_output_data_folder_path / 'qualisys_joint_centers_3d_xyz.npy')
-            skeleton = create_qualisys_skeleton_model()
+            skeleton = create_qualisys_tf01_skeleton_model()
         else:
             raise HTTPException(status_code=400, detail="Unknown tracker type")
         
