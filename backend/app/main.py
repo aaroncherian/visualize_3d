@@ -41,7 +41,7 @@ recording_folder_path = Path(r'D:\2023-06-07_TF01\1.0_recordings\treadmill_calib
 
 
 recording_folder_path = Path(r'D:\recording_12_57_19_gmt-4__JSM_class_balance_control')
-mediapipe_output_data_folder_path = recording_folder_path / 'output_data'
+mediapipe_output_data_folder_path = recording_folder_path / 'output_data'/'aligned_data'
 
 
 
