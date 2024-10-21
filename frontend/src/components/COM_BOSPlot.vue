@@ -155,14 +155,15 @@ const chartOptions = computed(() => ({
     x: {
       type: 'linear',
       position: 'bottom',
-      title: { display: true, text: 'X Position (mm)' },
-      min: calculateAxisRanges.value.xMin,
-      max: calculateAxisRanges.value.xMax,
+      title: { display: true, text: 'X Position (m)' },
+      min: calculateAxisRanges.value.xMax,  // Swap min and max
+      max: calculateAxisRanges.value.xMin,  // Swap min and max
+      reverse: true,  // Add this line to reverse the axis
     },
     y: {
       type: 'linear',
       position: 'left',
-      title: { display: true, text: 'Y Position (mm)' },
+      title: { display: true, text: 'Y Position (m)' },
       min: calculateAxisRanges.value.yMin,
       max: calculateAxisRanges.value.yMax,
     }
