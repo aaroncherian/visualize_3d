@@ -161,8 +161,8 @@ const chartOptions = computed(() => ({
       type: 'linear',
       position: 'bottom',
       title: {display: true, text: 'X Position (m)'},
-      min: -1000,
-      max: 1000,
+      min: -800,
+      max: 800,
       reverse: true,
     },
     y: {
@@ -224,16 +224,24 @@ watch([comData, bodyData], () => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  align-items:center;
+  overflow: hidden;
 }
 
 .chart-container {
-  flex-grow: 1;
   width: 100%;
   height: 100%;
+  max-width: 800px;
+  max-height: 800px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .full-size-chart {
   width: 100% !important;
   height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
 }
 </style>
