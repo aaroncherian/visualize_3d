@@ -31,13 +31,18 @@ logger = logging.getLogger(__name__)
 recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_15_36_03_MDN_OneLeg_Trial1')
 recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_48_44_MDN_treadmill_2')
 recording_folder_path = Path(r'D:\2023-06-07_TF01\1.0_recordings\treadmill_calib\sesh_2023-06-07_12_06_15_TF01_flexion_neutral_trial_1')
-mediapipe_output_data_folder_path = recording_folder_path / 'aligned_data'
-# mediapipe_output_data_folder_path = recording_folder_path / 'output_data'/'aligned_data
-mediapipe_output_data_folder_path = recording_folder_path / 'mediapipe_dlc_output_data'/'aligned_data'
-# mediapipe_centered_output_data_folder_path = recording_folder_path / 'output_data'/'origin_aligned_data'
-qualisys_output_data_folder_path = recording_folder_path / 'qualisys_data'
+# mediapipe_output_data_folder_path = recording_folder_path / 'aligned_data'
+# # mediapipe_output_data_folder_path = recording_folder_path / 'output_data'/'aligned_data
+# mediapipe_output_data_folder_path = recording_folder_path / 'mediapipe_dlc_output_data'/'aligned_data'
+# # mediapipe_centered_output_data_folder_path = recording_folder_path / 'output_data'/'origin_aligned_data'
+# qualisys_output_data_folder_path = recording_folder_path / 'qualisys_data'
 # tracker_type = 'mediapipe'
 # data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
+
+
+recording_folder_path = Path(r'D:\recording_12_57_19_gmt-4__JSM_class_balance_control')
+mediapipe_output_data_folder_path = recording_folder_path / 'output_data'
+
 
 
 
@@ -86,7 +91,15 @@ async def get_data(tracker_type:str):
     except Exception as e:
         logger.error(f"Error serving data: {e}")
         raise HTTPException(status_code=500, detail=f"Error serving data: {e}")
-
+    
+@app.get("/data_extra/com")
+async def get_com_data():
+    try:
+        com_data = np.load(mediapipe_output_data_folder_path / 'center_of_mass' / 'mediapipe_total_body_center_of_mass_xyz.npy')
+        return {"com_data": com_data.tolist()}
+    except Exception as e:
+        logger.error(f"Error serving COM data: {e}")
+        raise HTTPException(status_code=500, detail=f"Error serving COM data: {e}")
 
 # app.mount("/static", StaticFiles(directory="skeleton-visualization/fast_api"), name="static")
 

@@ -4,8 +4,11 @@
       <div class="grid-item threejs-item">
         <PrimeVueThreeJS />
       </div>
+<!--      <div class="grid-item trajectory-item">-->
+<!--        <TrajectoryPlotsCard />-->
+<!--      </div>-->
       <div class="grid-item trajectory-item">
-        <TrajectoryPlotsCard />
+       <COM_BOSCard />
       </div>
       <div class="grid-item video-item">
         <VideoPlayerCard />
@@ -24,6 +27,7 @@ import AnimationControlPanel from '@/components/cards/AnimationControlsCard.vue'
 import VideoPlayerCard from '@/components/cards/VideoPlayerCard.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import TrajectoryPlotsCard from "@/components/cards/TrajectoryPlotsCard.vue";
+import COM_BOSCard from "@/components/cards/COM_BOSCard.vue";
 </script>
 
 <style>
