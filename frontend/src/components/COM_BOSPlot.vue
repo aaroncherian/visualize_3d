@@ -14,13 +14,13 @@
 </template>
 
 <script setup>
-import {ref, onMounted, watch, computed} from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import Chart from 'primevue/chart';
-import {useAnimationStore} from '@/stores/animationStore';
-import {storeToRefs} from 'pinia';
+import { useAnimationStore } from '@/stores/animationStore';
+import { storeToRefs } from 'pinia';
 
 const animationStore = useAnimationStore();
-const {currentFrameNumber, numFrames} = storeToRefs(animationStore);
+const { currentFrameNumber, numFrames } = storeToRefs(animationStore);
 
 const comData = ref(null);
 const bodyData = ref(null);
@@ -44,7 +44,7 @@ const fetchData = async () => {
 onMounted(fetchData);
 
 const calculateAxisRanges = computed(() => {
-  if (!comData.value || !bodyData.value) return {xMin: 0, xMax: 1, yMin: 0, yMax: 1};
+  if (!comData.value || !bodyData.value) return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
 
   const allX = [...comData.value.map(p => p[0]), ...Object.values(bodyData.value.trajectories).flatMap(t => t.map(p => p[0]))];
   const allY = [...comData.value.map(p => p[1]), ...Object.values(bodyData.value.trajectories).flatMap(t => t.map(p => p[1]))];
@@ -66,54 +66,53 @@ const calculateAxisRanges = computed(() => {
 });
 
 const chartData = computed(() => {
-  if (!comData.value || !bodyData.value) return {datasets: []};
+  if (!comData.value || !bodyData.value) return { datasets: [] };
 
   const frame = currentFrameNumber.value;
   const trailLength = 20;
 
   const datasets = [
-    // Left foot
+    // Left foot (current frame)
     {
       label: 'Left Foot',
       data: [
-        {x: bodyData.value.trajectories.left_heel[frame][0], y: bodyData.value.trajectories.left_heel[frame][1]},
-        {
-          x: bodyData.value.trajectories.left_foot_index[frame][0],
-          y: bodyData.value.trajectories.left_foot_index[frame][1]
-        }
+        { x: bodyData.value.trajectories.left_heel[frame][0], y: bodyData.value.trajectories.left_heel[frame][1] },
+        { x: bodyData.value.trajectories.left_foot_index[frame][0], y: bodyData.value.trajectories.left_foot_index[frame][1] }
       ],
-      borderColor: 'blue',
+      borderColor: 'black',
       backgroundColor: 'blue',
       pointStyle: 'circle',
-      pointRadius: 5,
+      pointRadius: 7,
+      pointBorderWidth: 2,
       showLine: true,
+      borderWidth: 2,
       borderDash: [5, 5]
     },
-    // Right foot
+    // Right foot (current frame)
     {
       label: 'Right Foot',
       data: [
-        {x: bodyData.value.trajectories.right_heel[frame][0], y: bodyData.value.trajectories.right_heel[frame][1]},
-        {
-          x: bodyData.value.trajectories.right_foot_index[frame][0],
-          y: bodyData.value.trajectories.right_foot_index[frame][1]
-        }
+        { x: bodyData.value.trajectories.right_heel[frame][0], y: bodyData.value.trajectories.right_heel[frame][1] },
+        { x: bodyData.value.trajectories.right_foot_index[frame][0], y: bodyData.value.trajectories.right_foot_index[frame][1] }
       ],
-      borderColor: 'red',
+      borderColor: 'black',
       backgroundColor: 'red',
       pointStyle: 'circle',
-      pointRadius: 5,
+      pointRadius: 7,
+      pointBorderWidth: 2,
       showLine: true,
+      borderWidth: 2,
       borderDash: [5, 5]
     },
-    // Center of Mass
+    // Center of Mass (current frame)
     {
       label: 'Center of Mass',
-      data: [{x: comData.value[frame][0], y: comData.value[frame][1]}],
-      borderColor: 'orange',
+      data: [{ x: comData.value[frame][0], y: comData.value[frame][1] }],
+      borderColor: 'darkorange',
       backgroundColor: 'orange',
       pointStyle: 'star',
-      pointRadius: 10,
+      pointRadius: 12,
+      pointBorderWidth: 2,
       showLine: false
     }
   ];
@@ -122,39 +121,33 @@ const chartData = computed(() => {
   ['Left Foot', 'Right Foot', 'Center of Mass'].forEach((label, index) => {
     for (let i = 1; i <= trailLength; i++) {
       const trailFrame = Math.max(0, frame - i);
-      const opacity = 1 - i / trailLength;
+      const opacity = 1 - (i / trailLength);
       let trailData;
 
       if (label.includes('Foot')) {
         const side = label.split(' ')[0].toLowerCase();
         trailData = [
-          {
-            x: bodyData.value.trajectories[`${side}_heel`][trailFrame][0],
-            y: bodyData.value.trajectories[`${side}_heel`][trailFrame][1]
-          },
-          {
-            x: bodyData.value.trajectories[`${side}_foot_index`][trailFrame][0],
-            y: bodyData.value.trajectories[`${side}_foot_index`][trailFrame][1]
-          }
+          { x: bodyData.value.trajectories[`${side}_heel`][trailFrame][0], y: bodyData.value.trajectories[`${side}_heel`][trailFrame][1] },
+          { x: bodyData.value.trajectories[`${side}_foot_index`][trailFrame][0], y: bodyData.value.trajectories[`${side}_foot_index`][trailFrame][1] }
         ];
       } else {
-        trailData = [{x: comData.value[trailFrame][0], y: comData.value[trailFrame][1]}];
+        trailData = [{ x: comData.value[trailFrame][0], y: comData.value[trailFrame][1] }];
       }
 
       datasets.push({
         data: trailData,
-        borderColor: datasets[index].borderColor,
-        backgroundColor: datasets[index].backgroundColor,
+        borderColor: `rgba(${label.includes('Left') ? '0,0,255' : label.includes('Right') ? '255,0,0' : '255,165,0'},${opacity})`,
+        backgroundColor: `rgba(${label.includes('Left') ? '0,0,255' : label.includes('Right') ? '255,0,0' : '255,165,0'},${opacity})`,
         pointStyle: 'circle',
-        pointRadius: 2,
+        pointRadius: label.includes('Foot') ? 3 : 5,
         showLine: label.includes('Foot'),
         borderDash: label.includes('Foot') ? [5, 5] : undefined,
-        opacity: opacity
+        borderWidth: 1
       });
     }
   });
 
-  return {datasets};
+  return { datasets };
 });
 
 const chartOptions = computed(() => ({
@@ -162,14 +155,14 @@ const chartOptions = computed(() => ({
     x: {
       type: 'linear',
       position: 'bottom',
-      title: {display: true, text: 'X Position (m)'},
+      title: { display: true, text: 'X Position (mm)' },
       min: calculateAxisRanges.value.xMin,
       max: calculateAxisRanges.value.xMax,
     },
     y: {
       type: 'linear',
       position: 'left',
-      title: {display: true, text: 'Y Position (m)'},
+      title: { display: true, text: 'Y Position (mm)' },
       min: calculateAxisRanges.value.yMin,
       max: calculateAxisRanges.value.yMax,
     }
@@ -179,8 +172,8 @@ const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: {display: false},
-    tooltip: {enabled: false}
+    legend: { display: false },
+    tooltip: { enabled: false }
   }
 }));
 
@@ -197,7 +190,7 @@ watch([comData, bodyData], () => {
     chartRef.value.chart.options = chartOptions.value;
     chartRef.value.chart.update('none');
   }
-}, {immediate: true});
+}, { immediate: true });
 </script>
 
 <style scoped>
