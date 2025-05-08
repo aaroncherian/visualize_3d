@@ -4,12 +4,12 @@
       <div class="grid-item threejs-item">
         <PrimeVueThreeJS />
       </div>
-<!--      <div class="grid-item trajectory-item">-->
-<!--        <TrajectoryPlotsCard />-->
-<!--      </div>-->
       <div class="grid-item trajectory-item">
-       <COM_BOSCard />
+        <TrajectoryPlotsCard />
       </div>
+<!--      <div class="grid-item trajectory-item">-->
+<!--       <COM_BOSCard />-->
+<!--      </div>-->
       <div class="grid-item video-item">
         <VideoPlayerCard />
       </div>

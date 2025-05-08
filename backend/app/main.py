@@ -22,6 +22,7 @@ import pickle
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+import traceback
 
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
 # recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
@@ -80,9 +81,9 @@ async def get_data(tracker_type:str):
         if tracker_type == 'mediapipe':
             data3d = np.load(mediapipe_output_data_folder_path / 'mediapipe_body_3d_xyz.npy')
             skeleton = create_mediapipe_skeleton_model()
-        elif tracker_type == 'qualisys':
-            data3d = np.load(qualisys_output_data_folder_path / 'qualisys_joint_centers_3d_xyz.npy')
-            skeleton = create_qualisys_tf01_skeleton_model()
+        # elif tracker_type == 'qualisys':
+        #     data3d = np.load(qualisys_output_data_folder_path / 'qualisys_joint_centers_3d_xyz.npy')
+        #     skeleton = create_qualisys_tf01_skeleton_model()
         else:
             raise HTTPException(status_code=400, detail="Unknown tracker type")
         
@@ -90,6 +91,8 @@ async def get_data(tracker_type:str):
         return skeleton.to_custom_dict()
     except Exception as e:
         logger.error(f"Error serving data: {e}")
+        traceback.print_exc()
+
         raise HTTPException(status_code=500, detail=f"Error serving data: {e}")
     
 @app.get("/data_extra/com")

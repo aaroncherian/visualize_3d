@@ -79,9 +79,11 @@ onMounted(async () => {
     visualizeAvailableSkeletons(newFrame, availableSkeletonData)
   });
 
+  console.log('Initial trackerToFetch:', skeletonStore.trackerToFetch);
   watch(
       () => skeletonStore.trackerToFetch,
       (newTracker) => {
+        console.log('Requested tracker:', newTracker);
         if (newTracker) {
           fetchData(newTracker);
           skeletonStore.resetFetchTracker(); // Reset after fetching if needed
@@ -141,10 +143,10 @@ const fetchData = async (trackerType) => {
 defineExpose({ fetchData });
 
 
-const getQualisys = () => {
-  console.log('Fetching qualisys data');
-  fetchData('qualisys');
-};
+// const getQualisys = () => {
+//   console.log('Fetching qualisys data');
+//   fetchData('qualisys');
+// };
 
 const visualizeAvailableSkeletons = (frame, availableSkeletonData) => {
   Object.values(availableSkeletonData.value).forEach(skeleton => {

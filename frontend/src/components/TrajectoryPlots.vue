@@ -1,9 +1,23 @@
 <template>
   <div class="trajectory-plots">
-    <Dropdown v-model="selectedJoint" :options="jointOptions" optionLabel="name" placeholder="Select a joint" class="mb-3 w-full" />
+    <Dropdown
+        v-model="selectedJoint"
+        :options="jointOptions"
+        placeholder="Select a joint"
+        class="mb-3 w-full"
+    />
     <div v-if="selectedJoint" class="grid">
-      <div v-for="(chartData, axis) in axisChartData" :key="axis" class="col-12 md:col-4 mb-3">
-        <Chart type="line" :data="chartData" :options="getChartOptions(axis)" class="h-20rem" />
+      <div
+          v-for="(chartData, axis) in axisChartData"
+          :key="axis"
+          class="col-12 md:col-4 mb-3"
+      >
+        <Chart
+            type="line"
+            :data="chartData"
+            :options="getChartOptions(axis)"
+            class="h-20rem"
+        />
       </div>
     </div>
   </div>
@@ -17,11 +31,11 @@ import { useAnimationStore } from '@/stores/animationStore';
 import { storeToRefs } from 'pinia';
 
 const animationStore = useAnimationStore();
-const { currentFrameNumber, numFrames } = storeToRefs(animationStore);
+const { currentFrameNumber } = storeToRefs(animationStore);
 
 const trajectoryData = ref(null);
 const selectedJoint = ref(null);
-const windowSize = 100; // Total number of frames to show
+const windowSize = 100;
 
 onMounted(async () => {
   await fetchTrajectoryData();
@@ -31,61 +45,48 @@ const fetchTrajectoryData = async () => {
   try {
     const mediapipeResponse = await fetch('/api/data/mediapipe');
     const mediapipeData = await mediapipeResponse.json();
-
-    let qualisysData = null;
-    try {
-      const qualisysResponse = await fetch('/api/data/qualisys');
-      qualisysData = await qualisysResponse.json();
-    } catch (error) {
-      console.log('Qualisys data not available');
-    }
-
-    trajectoryData.value = { mediapipe: mediapipeData, qualisys: qualisysData };
+    trajectoryData.value = { mediapipe: mediapipeData };
   } catch (error) {
-    console.error('Error fetching trajectory data:', error);
+    console.error('Error fetching mediapipe trajectory data:', error);
   }
 };
 
 const jointOptions = computed(() => {
   if (!trajectoryData.value?.mediapipe?.markers) return [];
-  return trajectoryData.value.mediapipe.markers.map(marker => ({ name: marker, code: marker }));
+  return trajectoryData.value.mediapipe.markers;
 });
 
 const axisChartData = computed(() => {
   if (!selectedJoint.value || !trajectoryData.value) return {};
 
-  const { mediapipe, qualisys } = trajectoryData.value;
-  const jointName = selectedJoint.value.code;
+  const { mediapipe } = trajectoryData.value;
+  const jointName = selectedJoint.value;
   const currentFrame = currentFrameNumber.value;
   const totalFrames = mediapipe.trajectories[jointName].length;
 
   const halfWindow = Math.floor(windowSize / 2);
   const startFrame = Math.max(0, currentFrame - halfWindow);
   const endFrame = Math.min(totalFrames - 1, startFrame + windowSize - 1);
-
-  // Adjust startFrame if we're near the end of the data
   const adjustedStartFrame = Math.max(0, endFrame - windowSize + 1);
 
-  const labels = [...Array(endFrame - adjustedStartFrame + 1).keys()].map(i => i + adjustedStartFrame);
+  const labels = [...Array(endFrame - adjustedStartFrame + 1).keys()].map(
+      i => i + adjustedStartFrame
+  );
 
   return ['x', 'y', 'z'].reduce((acc, axis, index) => {
-    const mediapipeData = mediapipe.trajectories[jointName].slice(adjustedStartFrame, endFrame + 1).map(frame => frame[index]);
-    const qualisysData = qualisys && qualisys.trajectories[jointName]
-        ? qualisys.trajectories[jointName].slice(adjustedStartFrame, endFrame + 1).map(frame => frame[index])
-        : [];
+    const jointFrames = mediapipe.trajectories[jointName];
 
-    // Calculate min and max for y-axis using the full dataset
-    const allMediapipeData = mediapipe.trajectories[jointName].map(frame => frame[index]);
-    const allQualisysData = qualisys && qualisys.trajectories[jointName]
-        ? qualisys.trajectories[jointName].map(frame => frame[index])
-        : [];
-    const allData = [...allMediapipeData, ...allQualisysData];
-    const minY = Math.min(...allData);
-    const maxY = Math.max(...allData);
-    const yPadding = (maxY - minY) * 0.1; // 10% padding
+    const mediapipeData = jointFrames
+        .slice(adjustedStartFrame, endFrame + 1)
+        .map(frame => frame[index]);
 
-    const freemocapColor = '#1E88E5'; // Blue
-    const qualisysColor = '#f54242'; // Red
+    const allData = jointFrames.map(frame => frame[index]);
+    const safeData = allData.length > 0 ? allData : [0];
+    const minY = Math.min(...safeData);
+    const maxY = Math.max(...safeData);
+    const yPadding = (maxY - minY) * 0.1;
+
+    const freemocapColor = '#1E88E5';
 
     acc[axis] = {
       labels,
@@ -98,20 +99,10 @@ const axisChartData = computed(() => {
           borderWidth: 2,
           pointRadius: 0,
           tension: 0.4,
-          order: 4 // Lowest order, drawn first
+          order: 2
         },
-        ...(qualisys && qualisys.trajectories[jointName] ? [{
-          label: 'Qualisys',
-          data: qualisysData,
-          borderColor: qualisysColor,
-          backgroundColor: qualisysColor,
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.4,
-          order: 3
-        }] : []),
         {
-          label: 'Current Frame',
+          label: 'Current Frame Line',
           data: [
             { x: currentFrame, y: minY - yPadding },
             { x: currentFrame, y: maxY + yPadding }
@@ -119,57 +110,49 @@ const axisChartData = computed(() => {
           borderColor: 'black',
           borderWidth: 2,
           pointRadius: 0,
-          order: 2
+          order: 1
         },
         {
-          label: 'Freemocap Current Frame',
-          data: labels.map(frame => frame === currentFrame ? mediapipe.trajectories[jointName][frame][index] : null),
+          label: 'Current Frame Dot',
+          data: labels.map(frame =>
+              frame === currentFrame
+                  ? jointFrames[frame][index]
+                  : null
+          ),
           borderColor: freemocapColor,
           backgroundColor: freemocapColor,
           borderWidth: 0,
           pointRadius: 6,
           pointHoverRadius: 8,
-          order: 1,
+          order: 0,
           showLine: false
-        },
-        ...(qualisys && qualisys.trajectories[jointName] ? [{
-          label: 'Qualisys Current Frame',
-          data: labels.map(frame => frame === currentFrame ? qualisys.trajectories[jointName][frame][index] : null),
-          borderColor: qualisysColor,
-          backgroundColor: qualisysColor,
-          borderWidth: 0,
-          pointRadius: 6,
-          pointHoverRadius: 8,
-          order: 0, // Highest order, drawn last
-          showLine: false
-        }] : [])
+        }
       ],
       yAxisMin: minY - yPadding,
       yAxisMax: maxY + yPadding
     };
+
     return acc;
   }, {});
 });
 
-const getChartOptions = (axis) => ({
+const getChartOptions = axis => ({
   responsive: true,
   maintainAspectRatio: false,
-  animation: false, // Disable animations for better performance
+  animation: false,
   plugins: {
     legend: {
       position: 'top',
       labels: {
-        filter: (item) => !item.text.includes('Current Frame'),
-        font: {
-          size: 14 // Increase legend font size
-        }
+        filter: item => !item.text.includes('Current Frame'),
+        font: { size: 14 }
       }
     },
     title: {
       display: true,
-      text: `${selectedJoint.value.name} - ${axis.toUpperCase()} Trajectory`,
+      text: `${selectedJoint.value} - ${axis.toUpperCase()} Trajectory`,
       font: {
-        size: 18, // Increase title font size
+        size: 18,
         weight: 'bold'
       }
     }
@@ -180,35 +163,28 @@ const getChartOptions = (axis) => ({
       title: {
         display: true,
         text: 'Frame',
-        font: {
-          size: 16, // Increase x-axis title font size
-          weight: 'bold'
-        }
+        font: { size: 16, weight: 'bold' }
       },
       ticks: {
         maxTicksLimit: 10,
         stepSize: 1,
         precision: 0,
-        font: {
-          size: 12 // Increase x-axis tick font size
-        }
+        font: { size: 12 }
       },
       min: axisChartData.value[axis].labels[0],
-      max: axisChartData.value[axis].labels[axisChartData.value[axis].labels.length - 1]
+      max:
+          axisChartData.value[axis].labels[
+          axisChartData.value[axis].labels.length - 1
+              ]
     },
     y: {
       title: {
         display: true,
         text: 'Position (mm)',
-        font: {
-          size: 16, // Increase y-axis title font size
-          weight: 'bold'
-        }
+        font: { size: 16, weight: 'bold' }
       },
       ticks: {
-        font: {
-          size: 12 // Increase y-axis tick font size
-        }
+        font: { size: 12 }
       },
       min: axisChartData.value[axis].yAxisMin,
       max: axisChartData.value[axis].yAxisMax
@@ -217,11 +193,11 @@ const getChartOptions = (axis) => ({
 });
 
 watch(currentFrameNumber, () => {
-  // This will trigger a re-computation of axisChartData
+  // Triggers re-computation
 });
 
 watch(selectedJoint, () => {
-  // This will trigger a re-computation of axisChartData
+  // Triggers re-computation
 });
 </script>
 
