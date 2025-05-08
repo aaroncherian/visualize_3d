@@ -1,24 +1,21 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, HTTPException, Request, BackgroundTasks, Form, File
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, Response
+from fastapi import FastAPI, WebSocket, HTTPException, Request, BackgroundTasks
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 import numpy as np
 from pathlib import Path
 import logging
 import cv2
 from io import BytesIO
-from fastapi.encoders import jsonable_encoder
 import base64
 
 
 import logging
 from tqdm import tqdm
 from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model
-from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
 
 from multiprocessing import Pool
 import time
-import pickle
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,16 +24,19 @@ logger = logging.getLogger(__name__)
 # recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\sesh_2022-09-19_16_16_50_in_class_jsm')
 # recording_folder_path = Path(r'D:\2024-04-25_P01\1.0_recordings\sesh_2024-04-25_15_44_19_P01_WalkRun_Trial1')
-recording_folder_path = Path(r'D:\2024-08-01_treadmill_KK_JSM_ATC\1.0_recordings\sesh_2024-08-01_16_18_26_JSM_wrecking_ball')
-output_data_folder_path = recording_folder_path / 'output_data'
-mediapipe_output_data_folder_path = recording_folder_path / 'aligned_data'
-mediapipe_output_data_folder_path = recording_folder_path / 'output_data'
-mediapipe_centered_output_data_folder_path = recording_folder_path / 'output_data'/'origin_aligned_data'
-qualisys_output_data_folder_path = recording_folder_path / 'qualisys_data'
+# recording_folder_path = Path(r'D:\2024-08-01_treadmill_KK_JSM_ATC\1.0_recordings\sesh_2024-08-01_16_18_26_JSM_wrecking_ball')
+# mediapipe_output_data_folder_path = recording_folder_path / 'aligned_data'
+# mediapipe_output_data_folder_path = recording_folder_path / 'output_data'
+
 # tracker_type = 'mediapipe'
 # data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
 
 
+recording_folder_path = Path(r'D:\recording_12_57_19_gmt-4__JSM_class_balance_control')
+mediapipe_output_data_folder_path = recording_folder_path / 'output_data'
+
+
+tracker_type = 'mediapipe'
 
 video_name = recording_folder_path/'test_video.mp4'
 annotated_video_folder_path = recording_folder_path/'annotated_videos'
@@ -66,11 +66,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/data/{tracker_type}")
-async def get_data(tracker_type:str):
+@app.get("/data")
+async def get_data():
     try:
         if tracker_type == 'mediapipe':
-            data3d = np.load(mediapipe_centered_output_data_folder_path / 'mediapipe_body_3d_xyz.npy')
+            data3d = np.load(mediapipe_output_data_folder_path / 'mediapipe_body_3d_xyz.npy')
             skeleton = create_mediapipe_skeleton_model()
         elif tracker_type == 'qualisys':
             data3d = np.load(qualisys_output_data_folder_path / 'qualisys_joint_centers_3d_xyz.npy')
@@ -319,7 +319,14 @@ def create_composite_video(video_name, threejs_frames, video_frames, width, heig
     except Exception as e:
         logger.error(f"Error in create_composite_video: {str(e)}")
 
-
+@app.get("/available_joint_names")
+async def get_available_joint_names():
+    try:
+        skeleton = create_mediapipe_skeleton_model()
+        return {"joint_names": skeleton.markers.all_markers}
+    except Exception as e:
+        logger.error(f"Error fetching joint names: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching joint names")
 
 @app.get("/")
 async def get_index():
