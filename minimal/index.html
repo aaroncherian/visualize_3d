@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>3D Motion Capture Data Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: #fefefe;
+    }
+
+    #graph-container {
+      flex: 1;
+      width: 100%;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    #control-container {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    #frame-slider {
+      width: 70%;
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="graph-container"></div>
+  <div id="control-container">
+    <button id="play-pause">Play</button>
+    <input type="range" min="0" value="0" class="slider" id="frame-slider">
+    <span id="frame-number">Frame: 0</span>
+    <label for="fps-input">FPS:</label>
+    <input type="number" id="fps-input" value="30" min="1" style="width:60px;">
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    let allFramesData = [];
+    let segmentConnections = {};
+    let currentJoint = null;
+    const slider = document.getElementById('frame-slider');
+    const frameNumber = document.getElementById('frame-number');
+
+
+    fetch('/data')
+      .then(response => response.json())
+      .then(data => {
+        allFramesData = data.trajectories;
+        segmentConnections = data.segments;
+        if (data.num_frames > 0) {
+          visualizeData(0);
+        }
+        slider.max = data.num_frames - 1;
+        frameNumber.textContent = `Frame: 0 / ${data.num_frames - 1}`;
+      });
+
+
+    const container = document.getElementById('graph-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+    const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 10000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    const dataGroup = new THREE.Group();
+    scene.add(dataGroup);
+
+    const gridHelper = new THREE.GridHelper(500, 10);
+    gridHelper.rotation.x = Math.PI / 2;
+    scene.add(gridHelper);
+
+    const axesHelper = new THREE.AxesHelper(100);
+    scene.add(axesHelper);
+
+    function visualizeData(frame) {
+      dataGroup.clear();
+
+      const defaultGeometry = new THREE.SphereGeometry(2, 16, 16);
+      const selectedGeometry = new THREE.SphereGeometry(2.5, 16, 16);
+      const defaultSphereMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+      const selectedSphereMaterial = new THREE.MeshBasicMaterial({ color: 0x009aa6 });
+
+      for (const markerName in allFramesData) {
+        const markerData = allFramesData[markerName];
+        if (markerData && markerData[frame]) {
+          const sphereMaterial = markerName === currentJoint ? selectedSphereMaterial : defaultSphereMaterial;
+          const sphereGeometry = markerName === currentJoint ? selectedGeometry : defaultGeometry;
+          const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+          sphere.position.set(markerData[frame][0] / 10, markerData[frame][1] / 10, markerData[frame][2] / 10);
+          sphere.name = markerName;
+          dataGroup.add(sphere);
+        }
+      }
+
+      for (const [segmentName, segmentData] of Object.entries(segmentConnections)) {
+        const lineVertices = [];
+        for (const markerName of Object.values(segmentData)) {
+          const point = dataGroup.getObjectByName(markerName)?.position;
+          if (point) lineVertices.push(point.clone());
+        }
+
+        if (lineVertices.length >= 2) {
+          const lineGeometry = new THREE.BufferGeometry().setFromPoints(lineVertices);
+          const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+          const lineObject = new THREE.Line(lineGeometry, lineMaterial);
+          dataGroup.add(lineObject);
+        }
+      }
+    }
+
+    camera.position.set(0, 250, 500);
+    camera.lookAt(0, 0, 0);
+    camera.up.set(0, 0, 1);
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    const playPauseButton = document.getElementById('play-pause');
+    let isPlaying = false;
+    let currentFrame = 0;
+    let fps = 30;
+    let frameInterval = 1000 / fps;
+    let lastFrameTime = 0;
+
+    document.getElementById('fps-input').addEventListener('input', function () {
+      fps = parseInt(this.value);
+      frameInterval = 1000 / fps;
+    });
+
+    slider.addEventListener('input', function () {
+      currentFrame = parseInt(this.value);
+      updateVisualization();
+    });
+
+    playPauseButton.addEventListener('click', function () {
+      isPlaying = !isPlaying;
+      this.textContent = isPlaying ? 'Pause' : 'Play';
+    });
+
+    function updateVisualization() {
+      visualizeData(currentFrame);
+      frameNumber.textContent = `Frame: ${currentFrame}`;
+      slider.value = currentFrame;
+    }
+
+    function animate(timestamp) {
+      requestAnimationFrame(animate);
+
+      if (isPlaying) {
+        const elapsed = timestamp - lastFrameTime;
+        if (elapsed >= frameInterval) {
+          lastFrameTime = timestamp - (elapsed % frameInterval);
+          currentFrame = (currentFrame + 1) % (+slider.max + 1);
+          updateVisualization();
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    window.addEventListener('load', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    animate(0);
+  </script>
+</body>
+</html>

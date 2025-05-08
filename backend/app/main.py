@@ -12,7 +12,9 @@ import base64
 
 import logging
 from tqdm import tqdm
-from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model
+from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model,create_skeleton_from_this_model_info
+from skellymodels.model_info.model_info import ModelInfo
+
 
 from multiprocessing import Pool
 import time
