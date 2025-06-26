@@ -13,11 +13,13 @@ import base64
 
 import logging
 from tqdm import tqdm
-from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model, create_qualisys_tf01_skeleton_model 
-from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
+from skellymodels.managers.board import Board
+from skellymodels.managers.human import Human
+# from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model, create_qualisys_tf01_skeleton_model 
+# from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
 
-from skellymodels.experimental.model_redo.managers.human import Human
-from skellymodels.experimental.model_redo.tracker_info.model_info import MediapipeModelInfo, ModelInfo
+# from skellymodels.experimental.model_redo.managers.human import Human
+# from skellymodels.experimental.model_redo.tracker_info.model_info import MediapipeModelInfo, ModelInfo
 
 from multiprocessing import Pool
 import time
@@ -26,7 +28,7 @@ import pickle
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 import traceback
-
+import math 
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\freemocap_test_data')
 # recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_37_32_MDN_treadmill_1')
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\sesh_2022-09-19_16_16_50_in_class_jsm')
@@ -42,56 +44,92 @@ recording_folder_path = Path(r'D:\2023-06-07_TF01\1.0_recordings\treadmill_calib
 # qualisys_output_data_folder_path = recording_folder_path / 'qualisys_data'
 # tracker_type = 'mediapipe'
 # data_3d_path = output_data_folder_path / f'{tracker_type}_body_3d_xyz.npy'
+
+def sanitize_for_json(data):
+    """Recursively replace NaN and inf in dicts/lists with None"""
+    if isinstance(data, dict):
+        return {k: sanitize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_for_json(v) for v in data]
+    elif isinstance(data, float):
+        return None if math.isnan(data) or math.isinf(data) else data
+    else:
+        return data
+    
 def human_to_custom_dict(human: Human) -> dict:
     """
     Mirror the legacy `to_custom_dict` for the new Human/Trajectory API.
     Returns only what the thin-client viewer needs.
     """
-    traj = human.body.trajectories["rigid_3d_xyz"]          # Trajectory object
+    traj = human.body.trajectories["3d_xyz"]          # Trajectory object
     markers = traj.landmark_names                     # list[str]  :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
     num_frames = traj.num_frames                      # int        :contentReference[oaicite:2]{index=2}:contentReference[oaicite:3]{index=3}
 
-    return {
+    return sanitize_for_json({
         "markers"     : markers,
-        "trajectories": {k: v.tolist() for k, v in traj.data.items()},  # (F, J, 3) → list
+        "trajectories": {k: v.tolist() for k, v in traj.as_dict.items()},
         "segments"    : human.body.anatomical_structure.segment_connections,
         "num_frames"  : num_frames,
-    }
+    })
 
 
 recording_folder_path = Path(r'D:\recording_12_57_19_gmt-4__JSM_class_balance_control')
-recording_folder_path = Path(r"D:\ferret_recording")
+recording_folder_path = Path(r"D:\ferret_em_talk\ferret_04_28_25")
+# recording_folder_path= Path(r"D:\2025-05-21_groundplane_fun\recording_14_34_47_gmt-4")
+recording_folder_path= Path(r"D:\2025-04-28-calibration")
+
 data_folder_path = recording_folder_path / 'output_data'
 
 video_name = recording_folder_path/'test_video.mp4'
 annotated_video_folder_path = recording_folder_path/'annotated_videos'
 
-list_of_annotated_videos = list(annotated_video_folder_path.glob('*.mp4'))
-
 # Global variable to store frames
 frames = {}
 results_dict = None
-tracker = "ferret_dlc"
+tracker = "charuco"
 
-
-if tracker == "mediapipe":
-    data3d = np.load(data_folder_path / 'mediapipe_skeleton_3d.npy')
-    skeleton = Human.from_tracked_points_numpy_array(
-    name = "human",
-    model_info = MediapipeModelInfo(),
-    tracked_points_numpy_array=data3d)
+if tracker == "charuco":
+    data3d = np.load(data_folder_path/"charuco_3d_xyz.npy")
+    skeleton = Board.from_board_definition(columns = 5, rows = 3)
+    skeleton.add_tracked_points_numpy(data3d)
     skeleton.calculate()
+    annotated_video_folder_path = recording_folder_path/'charuco_annotated_videos'
 
-elif tracker == "ferret_dlc":
-    path_to_ferret_yaml = Path(__file__).parents[1]/'tracker_models'/'dlc_ferret.yaml'
-    ferret_model_info = ModelInfo(config_path=path_to_ferret_yaml)
-    landmarks_array = np.load(data_folder_path/'raw_dlc_3d_array_iteration_12.npy')
-    landmarks_array = np.nan_to_num(landmarks_array)
+list_of_annotated_videos = list(annotated_video_folder_path.glob('*.mp4'))
 
-    skeleton = Human.from_landmarks_numpy_array(name="ferret",
-                model_info=ferret_model_info,
-                landmarks_numpy_array=landmarks_array)
-    skeleton.calculate()
+
+# if tracker == "mediapipe":
+#     data3d = np.load(data_folder_path / 'mediapipe_skeleton_3d.npy')
+#     skeleton = Human.from_tracked_points_numpy_array(
+#     name = "human",
+#     model_info = MediapipeModelInfo(),
+#     tracked_points_numpy_array=data3d)
+#     skeleton.calculate()
+
+# elif tracker == "ferret_dlc":
+#     path_to_ferret_yaml = Path(__file__).parents[1]/'tracker_models'/'dlc_ears_only_ferret.yaml'
+#     ferret_model_info = ModelInfo(config_path=path_to_ferret_yaml)
+#     landmarks_array = np.load(data_folder_path/'dlc_body_3d_xyz.npy')
+#     landmarks_array = np.nan_to_num(landmarks_array)
+
+#     skeleton = Human.from_landmarks_numpy_array(name="ferret",
+#                 model_info=ferret_model_info,
+#                 landmarks_numpy_array=landmarks_array)
+#     skeleton.calculate()
+
+# elif tracker == "charuco":
+#     path_to_charuco_yaml = Path(__file__).parents[1]/'tracker_models'/'charuco_board_full.yaml'
+#     charuco_model_info = ModelInfo(config_path=path_to_charuco_yaml)
+#     annotated_video_folder_path = recording_folder_path/'charuco_annotated_videos'
+#     list_of_annotated_videos = list(annotated_video_folder_path.glob('*.mp4'))
+#     data3d = np.load(data_folder_path / 'charuco_3d_xyz.npy')
+
+#     skeleton = Human.from_tracked_points_numpy_array(
+#         name = "charuco_board",
+#         model_info = charuco_model_info,
+#         tracked_points_numpy_array=data3d)  
+#     skeleton.calculate()
+
 
 
 @asynccontextmanager

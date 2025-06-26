@@ -35,7 +35,7 @@ const { currentFrameNumber } = storeToRefs(animationStore);
 
 const trajectoryData = ref(null);
 const selectedJoint = ref(null);
-const windowSize = 100;
+const windowSize = 500;
 
 onMounted(async () => {
   await fetchTrajectoryData();
@@ -207,3 +207,4 @@ watch(selectedJoint, () => {
   width: 100%;
 }
 </style>
+c
