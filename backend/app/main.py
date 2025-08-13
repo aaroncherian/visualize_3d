@@ -15,6 +15,7 @@ import logging
 from tqdm import tqdm
 from skellymodels.managers.board import Board
 from skellymodels.managers.human import Human
+from skellymodels.models.tracking_model_info import MediapipeModelInfo
 # from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model, create_qualisys_tf01_skeleton_model 
 # from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
 
@@ -61,7 +62,7 @@ def human_to_custom_dict(human: Human) -> dict:
     Mirror the legacy `to_custom_dict` for the new Human/Trajectory API.
     Returns only what the thin-client viewer needs.
     """
-    traj = human.body.trajectories["3d_xyz"]          # Trajectory object
+    traj = human.body.xyz       # Trajectory object
     markers = traj.landmark_names                     # list[str]  :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
     num_frames = traj.num_frames                      # int        :contentReference[oaicite:2]{index=2}:contentReference[oaicite:3]{index=3}
 
@@ -77,6 +78,7 @@ recording_folder_path = Path(r'D:\recording_12_57_19_gmt-4__JSM_class_balance_co
 recording_folder_path = Path(r"D:\ferret_em_talk\ferret_04_28_25")
 # recording_folder_path= Path(r"D:\2025-05-21_groundplane_fun\recording_14_34_47_gmt-4")
 recording_folder_path= Path(r"D:\2025-04-28-calibration")
+recording_folder_path = Path(r'D:\2023-06-07_TF01\1.0_recordings\treadmill_calib\sesh_2023-06-07_12_06_15_TF01_flexion_neutral_trial_1')
 
 data_folder_path = recording_folder_path / 'output_data'
 
@@ -86,7 +88,7 @@ annotated_video_folder_path = recording_folder_path/'annotated_videos'
 # Global variable to store frames
 frames = {}
 results_dict = None
-tracker = "charuco"
+tracker = "human_dlc"
 
 if tracker == "charuco":
     data3d = np.load(data_folder_path/"charuco_3d_xyz.npy")
@@ -94,6 +96,17 @@ if tracker == "charuco":
     skeleton.add_tracked_points_numpy(data3d)
     skeleton.calculate()
     annotated_video_folder_path = recording_folder_path/'charuco_annotated_videos'
+
+elif tracker == "mediapipe":
+    skeleton = Human.from_parquet(recording_folder_path/'mediapipe_skeleton.parquet')
+    # skeleton = Human.from_data(recording_folder_path/'validation'/'original_model_mediapipe')
+    annotated_video_folder_path = recording_folder_path/'dlc_annotated_videos'
+
+elif tracker == "human_dlc":
+    data_folder_path = recording_folder_path / 'validation'/'mediapipe'
+    skeleton = Human.from_parquet(data_folder_path/'freemocap_data_by_frame.parquet')
+    annotated_video_folder_path = recording_folder_path/'dlc_annotated_videos'
+
 
 list_of_annotated_videos = list(annotated_video_folder_path.glob('*.mp4'))
 
@@ -150,6 +163,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 
 @app.get("/data/{tracker_type}")
 async def get_data(tracker_type:str):
@@ -213,7 +228,6 @@ async def get_video_info():
         ],
         "total_videos": len(results_dict)
     }
-
 
 
 @app.get("/video/frames/{frame_index}")
