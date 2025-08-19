@@ -15,6 +15,7 @@ import logging
 from tqdm import tqdm
 from skellymodels.managers.board import Board
 from skellymodels.managers.human import Human
+from skellymodels.managers.animal import Animal
 from skellymodels.models.tracking_model_info import MediapipeModelInfo
 # from skellymodels.create_model_skeleton import create_mediapipe_skeleton_model, create_openpose_skeleton_model, create_qualisys_skeleton_model, create_qualisys_tf01_skeleton_model 
 # from skellymodels.model_info.mediapipe_model_info import MediapipeModelInfo
@@ -107,41 +108,13 @@ elif tracker == "human_dlc":
     skeleton = Human.from_parquet(data_folder_path/'freemocap_data_by_frame.parquet')
     annotated_video_folder_path = recording_folder_path/'dlc_annotated_videos'
 
+elif tracker == "ferret_dlc":
+    data_folder_path = recording_folder_path / 'output_data'/'dlc'
+    skeleton = Animal.from_data(data_folder_path)
+
 
 list_of_annotated_videos = list(annotated_video_folder_path.glob('*.mp4'))
 
-
-# if tracker == "mediapipe":
-#     data3d = np.load(data_folder_path / 'mediapipe_skeleton_3d.npy')
-#     skeleton = Human.from_tracked_points_numpy_array(
-#     name = "human",
-#     model_info = MediapipeModelInfo(),
-#     tracked_points_numpy_array=data3d)
-#     skeleton.calculate()
-
-# elif tracker == "ferret_dlc":
-#     path_to_ferret_yaml = Path(__file__).parents[1]/'tracker_models'/'dlc_ears_only_ferret.yaml'
-#     ferret_model_info = ModelInfo(config_path=path_to_ferret_yaml)
-#     landmarks_array = np.load(data_folder_path/'dlc_body_3d_xyz.npy')
-#     landmarks_array = np.nan_to_num(landmarks_array)
-
-#     skeleton = Human.from_landmarks_numpy_array(name="ferret",
-#                 model_info=ferret_model_info,
-#                 landmarks_numpy_array=landmarks_array)
-#     skeleton.calculate()
-
-# elif tracker == "charuco":
-#     path_to_charuco_yaml = Path(__file__).parents[1]/'tracker_models'/'charuco_board_full.yaml'
-#     charuco_model_info = ModelInfo(config_path=path_to_charuco_yaml)
-#     annotated_video_folder_path = recording_folder_path/'charuco_annotated_videos'
-#     list_of_annotated_videos = list(annotated_video_folder_path.glob('*.mp4'))
-#     data3d = np.load(data_folder_path / 'charuco_3d_xyz.npy')
-
-#     skeleton = Human.from_tracked_points_numpy_array(
-#         name = "charuco_board",
-#         model_info = charuco_model_info,
-#         tracked_points_numpy_array=data3d)  
-#     skeleton.calculate()
 
 
 
