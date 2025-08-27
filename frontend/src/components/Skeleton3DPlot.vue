@@ -102,7 +102,7 @@ let skeletonIDCounter = 0;
 
 const fetchData = async (trackerType) => {
   try {
-    const response = await fetch(`/api/data/${trackerType}`);
+    const response = await fetch(`/api/data`);
     // Check if the response was successful (status 200-299)
     if (!response.ok) {
       console.error(`Failed to fetch skeleton data. HTTP status: ${response.status}`);

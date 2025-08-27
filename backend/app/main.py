@@ -1,18 +1,18 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, HTTPException, Request, BackgroundTasks, Form, File
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, Response
+from fastapi import FastAPI, WebSocket, HTTPException, Request, BackgroundTasks
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 import numpy as np
 from pathlib import Path
 import logging
 import cv2
 from io import BytesIO
-from fastapi.encoders import jsonable_encoder
 import base64
 
 
 import logging
 from tqdm import tqdm
+
 from skellymodels.managers.board import Board
 from skellymodels.managers.human import Human
 from skellymodels.managers.animal import Animal
@@ -23,9 +23,9 @@ from skellymodels.models.tracking_model_info import MediapipeModelInfo
 # from skellymodels.experimental.model_redo.managers.human import Human
 # from skellymodels.experimental.model_redo.tracker_info.model_info import MediapipeModelInfo, ModelInfo
 
+
 from multiprocessing import Pool
 import time
-import pickle
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ import math
 # recording_folder_path = Path(r'C:\Users\aaron\FreeMocap_Data\recording_sessions\sesh_2022-09-19_16_16_50_in_class_jsm')
 # recording_folder_path = Path(r'D:\2024-04-25_P01\1.0_recordings\sesh_2024-04-25_15_44_19_P01_WalkRun_Trial1')
 # recording_folder_path = Path(r'D:\2024-08-01_treadmill_KK_JSM_ATC\1.0_recordings\sesh_2024-08-01_16_18_26_JSM_wrecking_ball')
+
 recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_15_36_03_MDN_OneLeg_Trial1')
 recording_folder_path = Path(r'D:\2023-05-17_MDN_NIH_data\1.0_recordings\calib_3\sesh_2023-05-17_13_48_44_MDN_treadmill_2')
 recording_folder_path = Path(r'D:\2023-06-07_TF01\1.0_recordings\treadmill_calib\sesh_2023-06-07_12_06_15_TF01_flexion_neutral_trial_1')
@@ -82,6 +83,7 @@ recording_folder_path= Path(r"D:\2025-04-28-calibration")
 recording_folder_path = Path(r'D:\2025_07_31_JSM_pilot\freemocap\2025-07-31_16-35-10_GMT-4_jsm_treadmill_trial_1')
 
 data_folder_path = recording_folder_path / 'output_data'
+
 
 video_name = recording_folder_path/'test_video.mp4'
 annotated_video_folder_path = recording_folder_path/'annotated_videos'
@@ -151,6 +153,8 @@ async def get_com_data():
     try:
         com_data = np.load(mediapipe_output_data_folder_path / 'center_of_mass' / 'mediapipe_total_body_center_of_mass_xyz.npy')
         return {"com_data": com_data.tolist()}
+eton.to_custom_dict()
+
     except Exception as e:
         logger.error(f"Error serving COM data: {e}")
         raise HTTPException(status_code=500, detail=f"Error serving COM data: {e}")
@@ -388,7 +392,14 @@ def create_composite_video(video_name, threejs_frames, video_frames, width, heig
     except Exception as e:
         logger.error(f"Error in create_composite_video: {str(e)}")
 
-
+@app.get("/available_joint_names")
+async def get_available_joint_names():
+    try:
+        skeleton = create_mediapipe_skeleton_model()
+        return {"joint_names": skeleton.markers.all_markers}
+    except Exception as e:
+        logger.error(f"Error fetching joint names: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching joint names")
 
 @app.get("/")
 async def get_index():
