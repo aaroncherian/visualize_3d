@@ -97,6 +97,7 @@ def human_to_custom_dict(human: Human) -> dict:
     markers = traj.landmark_names                     # list[str]  :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
     num_frames = traj.num_frames                      # int        :contentReference[oaicite:2]{index=2}:contentReference[oaicite:3]{index=3}
 
+
     def numpy_to_list(obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()

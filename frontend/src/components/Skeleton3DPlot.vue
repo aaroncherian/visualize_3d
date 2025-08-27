@@ -79,9 +79,11 @@ onMounted(async () => {
     visualizeAvailableSkeletons(newFrame, availableSkeletonData)
   });
 
+  console.log('Initial trackerToFetch:', skeletonStore.trackerToFetch);
   watch(
       () => skeletonStore.trackerToFetch,
       (newTracker) => {
+        console.log('Requested tracker:', newTracker);
         if (newTracker) {
           fetchData(newTracker);
           skeletonStore.resetFetchTracker(); // Reset after fetching if needed
@@ -141,10 +143,10 @@ const fetchData = async (trackerType) => {
 defineExpose({ fetchData });
 
 
-const getQualisys = () => {
-  console.log('Fetching qualisys data');
-  fetchData('qualisys');
-};
+// const getQualisys = () => {
+//   console.log('Fetching qualisys data');
+//   fetchData('qualisys');
+// };
 
 const visualizeAvailableSkeletons = (frame, availableSkeletonData) => {
   Object.values(availableSkeletonData.value).forEach(skeleton => {
@@ -170,7 +172,7 @@ const clearDataGroup = (groupToClear) => {
 };
 
 const plotSpheresAsJoints = (frame, trajectories, group, trackerType) => {
-  const defaultSphereGeometry = new THREE.SphereGeometry(2, 16, 16);
+  const defaultSphereGeometry = new THREE.SphereGeometry(1, 16, 16);
   const selectedSphereGeometry = new THREE.SphereGeometry(2.5, 16, 16);
   const sphereColor = getSkeletonSphereColor(trackerType);
   const outlineMaterial = new THREE.MeshBasicMaterial({
@@ -231,7 +233,7 @@ const initializeScene = () => {
   renderer.setPixelRatio(window.devicePixelRatio); // Set the pixel ratio for better clarity
   container.value.appendChild(renderer.domElement);
 
-  // const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  // const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);cd
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 250, 500);
   camera.lookAt(0, 0, 0);
