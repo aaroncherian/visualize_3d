@@ -63,7 +63,7 @@ def human_to_custom_dict(human: Human) -> dict:
     Mirror the legacy `to_custom_dict` for the new Human/Trajectory API.
     Returns only what the thin-client viewer needs.
     """
-    traj = human.body.xyz       # Trajectory object
+    traj = human.body.rigid_xyz       # Trajectory object
     markers = traj.landmark_names                     # list[str]  :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
     num_frames = traj.num_frames                      # int        :contentReference[oaicite:2]{index=2}:contentReference[oaicite:3]{index=3}
 
@@ -79,7 +79,7 @@ recording_folder_path = Path(r'D:\recording_12_57_19_gmt-4__JSM_class_balance_co
 recording_folder_path = Path(r"D:\ferret_em_talk\ferret_04_28_25")
 # recording_folder_path= Path(r"D:\2025-05-21_groundplane_fun\recording_14_34_47_gmt-4")
 recording_folder_path= Path(r"D:\2025-04-28-calibration")
-recording_folder_path = Path(r'D:\2023-06-07_TF01\1.0_recordings\treadmill_calib\sesh_2023-06-07_12_06_15_TF01_flexion_neutral_trial_1')
+recording_folder_path = Path(r'D:\2025_07_31_JSM_pilot\freemocap\2025-07-31_16-35-10_GMT-4_jsm_treadmill_trial_1')
 
 data_folder_path = recording_folder_path / 'output_data'
 
@@ -89,7 +89,7 @@ annotated_video_folder_path = recording_folder_path/'annotated_videos'
 # Global variable to store frames
 frames = {}
 results_dict = None
-tracker = "human_dlc"
+tracker = "mediapipe"
 
 if tracker == "charuco":
     data3d = np.load(data_folder_path/"charuco_3d_xyz.npy")
@@ -99,13 +99,15 @@ if tracker == "charuco":
     annotated_video_folder_path = recording_folder_path/'charuco_annotated_videos'
 
 elif tracker == "mediapipe":
-    skeleton = Human.from_parquet(recording_folder_path/'mediapipe_skeleton.parquet')
+    skeleton = Human.from_data(recording_folder_path/'validation'/'mediapipe')
     # skeleton = Human.from_data(recording_folder_path/'validation'/'original_model_mediapipe')
-    annotated_video_folder_path = recording_folder_path/'dlc_annotated_videos'
+    annotated_video_folder_path = recording_folder_path/'annotated_videos'
 
 elif tracker == "human_dlc":
-    data_folder_path = recording_folder_path / 'validation'/'mediapipe'
-    skeleton = Human.from_parquet(data_folder_path/'freemocap_data_by_frame.parquet')
+    data_folder_path = recording_folder_path / 'output_data'/'dlc_rigidified'
+    skeleton:Human = Human.from_parquet(data_folder_path/'freemocap_data_by_frame.parquet')
+    skeleton.put_skeleton_on_ground()
+    skeleton.calculate()
     annotated_video_folder_path = recording_folder_path/'dlc_annotated_videos'
 
 elif tracker == "ferret_dlc":
